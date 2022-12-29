@@ -1,0 +1,16 @@
+[package]
+name = "cfx-types"
+version = "0.2.0"
+license = "GPL-3.0"
+description = "Conflux types"
+
+[dependencies]
+ethereum-types = "0.9"
+serde_derive = "1.0"
+serde = "1.0"
+rlp = "0.4.0"
+cfx-types-old = { package = "cfx-types", git = "https://github.com/Conflux-Chain/conflux-rust", rev="8ac4b7f"}
+rlp_derive = { git = "https://github.com/Conflux-Chain/conflux-parity-deps.git", rev = "1597a9cab02343eb2322ca0ac58d39b64e3f42d1"  }
+
+[features]
+storage_benchmark_no_account_space_check = []
