@@ -1384,28 +1384,6 @@ impl<'a, Substate: SubstateMngTrait> ExecutiveGeneric<'a, Substate> {
             ));
         }
 
-        // Validate transaction epoch height.
-        // if let Transaction::Native(ref tx) = tx.transaction.transaction.unsigned
-        // {
-        //     if check_settings.check_epoch_height
-        //         && VerificationConfig::check_transaction_epoch_bound(
-        //             tx,
-        //             self.env.epoch_height,
-        //             self.env.transaction_epoch_bound,
-        //         ) != 0
-        //     {
-        //         return Ok(ExecutionOutcome::NotExecutedToReconsiderPacking(
-        //             ToRepackError::EpochHeightOutOfBound {
-        //                 block_height: self.env.epoch_height,
-        //                 set: tx.epoch_height,
-        //                 transaction_epoch_bound: self
-        //                     .env
-        //                     .transaction_epoch_bound,
-        //             },
-        //         ));
-        //     }
-        // }
-
         let base_gas_required = gas_required_for(tx.action() == &Action::Create, &tx.data(), spec);
         assert!(
             *tx.gas() >= base_gas_required.into(),

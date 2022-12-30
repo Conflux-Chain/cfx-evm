@@ -51,16 +51,16 @@ impl Decodable for TransactionOutcome {
 }
 
 impl Default for TransactionOutcome {
-    fn default() -> Self { TransactionOutcome::Success }
+    fn default() -> Self {
+        TransactionOutcome::Success
+    }
 }
 
 impl TransactionOutcome {
     pub fn in_space(&self, space: Space) -> u8 {
         match (space, self) {
             // Conflux
-            (Space::Native, TransactionOutcome::Success) => {
-                TRANSACTION_OUTCOME_SUCCESS
-            }
+            (Space::Native, TransactionOutcome::Success) => TRANSACTION_OUTCOME_SUCCESS,
             (Space::Native, TransactionOutcome::Failure) => {
                 TRANSACTION_OUTCOME_EXCEPTION_WITH_NONCE_BUMPING
             }
@@ -108,12 +108,16 @@ pub struct Receipt {
 
 impl Receipt {
     pub fn new(
-        outcome: TransactionOutcome, accumulated_gas_used: U256, gas_fee: U256,
-        gas_sponsor_paid: bool, logs: Vec<LogEntry>, log_bloom: Bloom,
-        storage_sponsor_paid: bool, storage_collateralized: Vec<StorageChange>,
+        outcome: TransactionOutcome,
+        accumulated_gas_used: U256,
+        gas_fee: U256,
+        gas_sponsor_paid: bool,
+        logs: Vec<LogEntry>,
+        log_bloom: Bloom,
+        storage_sponsor_paid: bool,
+        storage_collateralized: Vec<StorageChange>,
         storage_released: Vec<StorageChange>,
-    ) -> Self
-    {
+    ) -> Self {
         Self {
             accumulated_gas_used,
             gas_fee,
@@ -129,7 +133,9 @@ impl Receipt {
 }
 
 impl MallocSizeOf for StorageChange {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize { 0 }
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
 }
 
 impl MallocSizeOf for Receipt {

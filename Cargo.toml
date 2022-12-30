@@ -20,8 +20,8 @@ malloc_size_of_derive = {path = "malloc_size_of_derive"}
 
 cfx-statedb = { path = "statedb" }
 cfx-state = { path = "state" }
-cfx-storage = { git = "https://github.com/Conflux-Chain/conflux-rust", rev="8ac4b7f"}
-cfx-internal-common = { git = "https://github.com/Conflux-Chain/conflux-rust", rev="8ac4b7f"}
+cfx-storage = { path = "storage" }
+cfx-internal-common = { path = "internal-common" }
 # cfx-utils = { git = "https://github.com/Conflux-Chain/conflux-rust", rev="8ac4b7f"}
 
 

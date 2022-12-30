@@ -7,14 +7,9 @@ use std::{
     sync::Arc,
 };
 
-use num::integer::Roots;
-use parking_lot::{MappedRwLockWriteGuard, RwLock, RwLockUpgradableReadGuard, RwLockWriteGuard};
-
 use cfx_bytes::Bytes;
 use cfx_internal_common::{debug::ComputeEpochDebugRecord, StateRootWithAuxInfo};
 use cfx_parameters::{
-    consensus::ONE_UCFX_IN_DRIP,
-    consensus_internal::MINING_REWARD_TANZANITE_IN_UCFX,
     internal_contract_addresses::{
         SPONSOR_WHITELIST_CONTROL_CONTRACT_ADDRESS, SYSTEM_STORAGE_ADDRESS,
     },
@@ -25,13 +20,12 @@ use cfx_state::{
     state_trait::{AsStateOpsTrait, CheckpointTrait, StateOpsTrait},
     CleanupMode, CollateralCheckResult, StateTrait, SubstateTrait,
 };
-use cfx_statedb::{
-    ErrorKind as DbErrorKind, Result as DbResult, StateDbExt, StateDbGeneric as StateDb,
-};
+use cfx_statedb::{ErrorKind as DbErrorKind, Result as DbResult, StateDb, StateDbExt};
 use cfx_storage::utils::access_mode;
 use cfx_types::{
     address_util::AddressUtil, Address, AddressSpaceUtil, AddressWithSpace, Space, H256, U256,
 };
+use parking_lot::{MappedRwLockWriteGuard, RwLock, RwLockUpgradableReadGuard, RwLockWriteGuard};
 #[cfg(test)]
 use primitives::storage::STORAGE_LAYOUT_REGULAR_V0;
 use primitives::{
@@ -40,9 +34,6 @@ use primitives::{
 };
 
 use crate::{
-    executive::internal_contract::{
-        get_settled_param_vote_count, get_settled_pos_staking_for_votes, settle_current_votes,
-    },
     hash::KECCAK_EMPTY,
     observer::{AddressPocket, StateTracer},
     // transaction_pool::SharedTransactionPool,
@@ -1315,56 +1306,6 @@ impl StateGeneric {
         }
     }
 
-    pub fn initialize_or_update_dao_voted_params(&mut self, set_pos_staking: bool) -> DbResult<()> {
-        let vote_count = get_settled_param_vote_count(self).expect("db error");
-        debug!(
-            "initialize_or_update_dao_voted_params: vote_count={:?}",
-            vote_count
-        );
-        debug!(
-            "before pos interest: {} base_reward:{:?}",
-            self.world_statistics.interest_rate_per_block,
-            self.db.get_pow_base_reward()?
-        );
-
-        // If pos_staking has not been set before, this will be zero and the
-        // vote count will always be sufficient, so we do not need to
-        // check if CIP105 is enabled here.
-        let pos_staking_for_votes = get_settled_pos_staking_for_votes(self)?;
-        // If the internal contract is just initialized, all votes are zero and
-        // the parameters remain unchanged.
-        self.world_statistics.interest_rate_per_block =
-            vote_count.pos_reward_interest.compute_next_params(
-                self.world_statistics.interest_rate_per_block,
-                pos_staking_for_votes,
-            );
-        match self.db.get_pow_base_reward()? {
-            Some(old_pow_base_reward) => {
-                self.db.set_pow_base_reward(
-                    vote_count
-                        .pow_base_reward
-                        .compute_next_params(old_pow_base_reward, pos_staking_for_votes),
-                    None,
-                )?;
-            }
-            None => {
-                self.db.set_pow_base_reward(
-                    (MINING_REWARD_TANZANITE_IN_UCFX * ONE_UCFX_IN_DRIP).into(),
-                    None,
-                )?;
-            }
-        }
-        debug!(
-            "pos interest: {} base_reward:{:?}",
-            self.world_statistics.interest_rate_per_block,
-            self.db.get_pow_base_reward()?
-        );
-
-        settle_current_votes(self, set_pos_staking)?;
-
-        Ok(())
-    }
-
     fn commit_world_statistics(
         &mut self,
         mut debug_record: Option<&mut ComputeEpochDebugRecord>,
@@ -1897,60 +1838,4 @@ trait AccountEntryProtectedMethods {
     fn code_size(&self) -> Option<usize>;
     fn code(&self) -> Option<Arc<Bytes>>;
     fn code_owner(&self) -> Option<Address>;
-}
-
-fn sqrt_u256(input: U256) -> U256 {
-    let bits = input.bits();
-    if bits <= 64 {
-        return input.as_u64().sqrt().into();
-    }
-
-    /************************************************************
-     ** Step 1: pick the most significant 64 bits and estimate an
-     ** approximate root.
-     ************************************************************
-     **/
-    let significant_bits = 64 - bits % 2;
-    // The `rest_bits` must be even number.
-    let rest_bits = bits - significant_bits;
-    // The `input >> rest_bits` has `significant_bits`
-    let significant_word = (input >> rest_bits).as_u64();
-    // The `init_root` is slightly larger than the correct root.
-    let init_root = U256::from(significant_word.sqrt() + 1u64) << (rest_bits / 2);
-
-    /******************************************************************
-     ** Step 2: use the Newton's method to estimate the accurate value.
-     ******************************************************************
-     **/
-    let mut root = init_root;
-    // Will iterate for at most 4 rounds.
-    while root * root > input {
-        root = (input / root + root) / 2;
-    }
-
-    root
-}
-
-// TODO: move to a util module.
-pub fn power_two_fractional(ratio: u64, increase: bool, precision: u8) -> U256 {
-    assert!(precision <= 127);
-
-    let mut base = U256::one();
-    base <<= 254usize;
-
-    for i in 0..64u64 {
-        if ratio & (1 << i) != 0 {
-            if increase {
-                base <<= 1usize;
-            } else {
-                base >>= 1usize;
-            }
-        }
-        base = sqrt_u256(base);
-        base <<= 127usize;
-    }
-
-    base >>= (254 - precision) as usize;
-    // Computing error < 5.2 * 2 ^ -127
-    base
 }

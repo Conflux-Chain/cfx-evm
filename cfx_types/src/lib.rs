@@ -9,8 +9,8 @@ extern crate serde;
 extern crate serde_derive;
 
 pub use ethereum_types::{
-    Address, BigEndianHash, Bloom, BloomInput, Public, Secret, Signature, H128,
-    H160, H256, H512, H520, H64, U128, U256, U512, U64,
+    Address, BigEndianHash, Bloom, BloomInput, Public, Secret, Signature, H128, H160, H256, H512,
+    H520, H64, U128, U256, U512, U64,
 };
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use rlp_derive::{RlpDecodable, RlpEncodable};
@@ -18,18 +18,7 @@ use serde_derive::{Deserialize, Serialize};
 
 pub use self::space_util::AddressSpaceUtil;
 
-#[derive(
-    Eq,
-    PartialEq,
-    Hash,
-    Copy,
-    Clone,
-    Debug,
-    Ord,
-    PartialOrd,
-    Serialize,
-    Deserialize,
-)]
+#[derive(Eq, PartialEq, Hash, Copy, Clone, Debug, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum Space {
     Native,
     Ethereum,
@@ -71,16 +60,16 @@ impl Decodable for Space {
     }
 }
 
-#[derive(
-    Default, Copy, Clone, Debug, Eq, PartialEq, RlpEncodable, RlpDecodable,
-)]
+#[derive(Default, Copy, Clone, Debug, Eq, PartialEq, RlpEncodable, RlpDecodable)]
 pub struct AllChainID {
     native: u32,
     ethereum: u32,
 }
 
 impl AllChainID {
-    pub fn new(native: u32, ethereum: u32) -> Self { Self { native, ethereum } }
+    pub fn new(native: u32, ethereum: u32) -> Self {
+        Self { native, ethereum }
+    }
 
     pub fn fake_for_virtual(chain_id: u32) -> Self {
         Self {
@@ -96,13 +85,19 @@ impl AllChainID {
         }
     }
 
-    pub fn in_native_space(&self) -> u32 { self.in_space(Space::Native) }
+    pub fn in_native_space(&self) -> u32 {
+        self.in_space(Space::Native)
+    }
 
-    pub fn in_evm_space(&self) -> u32 { self.in_space(Space::Ethereum) }
+    pub fn in_evm_space(&self) -> u32 {
+        self.in_space(Space::Ethereum)
+    }
 }
 
 impl Default for Space {
-    fn default() -> Self { Space::Native }
+    fn default() -> Self {
+        Space::Native
+    }
 }
 
 #[derive(Default, Eq, PartialEq, Hash, Copy, Clone, Debug, Ord, PartialOrd)]
@@ -113,7 +108,9 @@ pub struct AddressWithSpace {
 
 impl AddressWithSpace {
     #[inline]
-    pub fn assert_native(&self) { assert_eq!(self.space, Space::Native) }
+    pub fn assert_native(&self) {
+        assert_eq!(self.space, Space::Native)
+    }
 }
 
 pub mod space_util {
@@ -141,9 +138,8 @@ pub mod space_util {
 
 /// The KECCAK hash of an empty bloom filter (0x00 * 256)
 pub const KECCAK_EMPTY_BLOOM: H256 = H256([
-    0xd3, 0x97, 0xb3, 0xb0, 0x43, 0xd8, 0x7f, 0xcd, 0x6f, 0xad, 0x12, 0x91,
-    0xff, 0x0b, 0xfd, 0x16, 0x40, 0x1c, 0x27, 0x48, 0x96, 0xd8, 0xc6, 0x3a,
-    0x92, 0x37, 0x27, 0xf0, 0x77, 0xb8, 0xe0, 0xb5,
+    0xd3, 0x97, 0xb3, 0xb0, 0x43, 0xd8, 0x7f, 0xcd, 0x6f, 0xad, 0x12, 0x91, 0xff, 0x0b, 0xfd, 0x16,
+    0x40, 0x1c, 0x27, 0x48, 0x96, 0xd8, 0xc6, 0x3a, 0x92, 0x37, 0x27, 0xf0, 0x77, 0xb8, 0xe0, 0xb5,
 ]);
 
 pub fn hexstr_to_h256(hex_str: &str) -> H256 {
@@ -172,7 +168,9 @@ pub mod address_util {
         fn is_null_address(&self) -> bool;
 
         #[inline]
-        fn address_type_bits(&self) -> u8 { self.type_byte() & 0xf0 }
+        fn address_type_bits(&self) -> u8 {
+            self.type_byte() & 0xf0
+        }
 
         #[inline]
         fn set_address_type_bits(&mut self, type_bits: u8) {
@@ -183,7 +181,9 @@ pub mod address_util {
 
         #[cfg(feature = "storage_benchmark_no_account_space_check")]
         #[inline]
-        fn is_genesis_valid_address(&self) -> bool { true }
+        fn is_genesis_valid_address(&self) -> bool {
+            true
+        }
 
         #[cfg(not(feature = "storage_benchmark_no_account_space_check"))]
         #[inline]
@@ -206,8 +206,7 @@ pub mod address_util {
 
         #[inline]
         fn is_builtin_address(&self) -> bool {
-            self.address_type_bits() == TYPE_BITS_BUILTIN
-                && !self.is_null_address()
+            self.address_type_bits() == TYPE_BITS_BUILTIN && !self.is_null_address()
         }
 
         #[inline]
@@ -223,7 +222,9 @@ pub mod address_util {
 
     impl AddressUtil for Address {
         #[inline]
-        fn type_byte(&self) -> &u8 { &self.as_fixed_bytes()[0] }
+        fn type_byte(&self) -> &u8 {
+            &self.as_fixed_bytes()[0]
+        }
 
         #[inline]
         fn type_byte_mut(&mut self) -> &mut u8 {
@@ -231,15 +232,21 @@ pub mod address_util {
         }
 
         #[inline]
-        fn is_null_address(&self) -> bool { self.is_zero() }
+        fn is_null_address(&self) -> bool {
+            self.is_zero()
+        }
     }
 
     impl AddressUtil for &[u8] {
         #[inline]
-        fn type_byte(&self) -> &u8 { &self[0] }
+        fn type_byte(&self) -> &u8 {
+            &self[0]
+        }
 
         #[inline]
-        fn type_byte_mut(&mut self) -> &mut u8 { unreachable!() }
+        fn type_byte_mut(&mut self) -> &mut u8 {
+            unreachable!()
+        }
 
         #[inline]
         fn is_null_address(&self) -> bool {

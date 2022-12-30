@@ -19,14 +19,14 @@ extern crate synstructure;
 #[cfg(not(test))]
 decl_derive!([MallocSizeOf, attributes(ignore_malloc_size_of)] => malloc_size_of_derive);
 
-fn malloc_size_of_derive(
-    s: synstructure::Structure,
-) -> proc_macro2::TokenStream {
+fn malloc_size_of_derive(s: synstructure::Structure) -> proc_macro2::TokenStream {
     let match_body = s.each(|binding| {
-        let ignore = binding.ast().attrs.iter().any(|attr| {
-            match attr.parse_meta().unwrap() {
-                syn::Meta::Path(ref path)
-                | syn::Meta::List(syn::MetaList { ref path, .. })
+        let ignore = binding
+            .ast()
+            .attrs
+            .iter()
+            .any(|attr| match attr.parse_meta().unwrap() {
+                syn::Meta::Path(ref path) | syn::Meta::List(syn::MetaList { ref path, .. })
                     if path.is_ident("ignore_malloc_size_of") =>
                 {
                     panic!(
@@ -34,12 +34,13 @@ fn malloc_size_of_derive(
                          e.g. #[ignore_malloc_size_of = \"because reasons\"]"
                     );
                 }
-                syn::Meta::NameValue(syn::MetaNameValue {
-                    ref path, ..
-                }) if path.is_ident("ignore_malloc_size_of") => true,
+                syn::Meta::NameValue(syn::MetaNameValue { ref path, .. })
+                    if path.is_ident("ignore_malloc_size_of") =>
+                {
+                    true
+                }
                 _ => false,
-            }
-        });
+            });
         if ignore {
             None
         } else if let syn::Type::Array(..) = binding.ast().ty {
@@ -57,8 +58,7 @@ fn malloc_size_of_derive(
 
     let ast = s.ast();
     let name = &ast.ident;
-    let (impl_generics, ty_generics, where_clause) =
-        ast.generics.split_for_impl();
+    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
     let mut where_clause = where_clause.unwrap_or(&parse_quote!(where)).clone();
     for param in ast.generics.type_params() {
         let ident = &param.ident;
@@ -89,7 +89,7 @@ fn test_struct() {
     let source = syn::parse_str(
         "struct Foo<T> { bar: Bar, baz: T, #[ignore_malloc_size_of = \"\"] z: Arc<T> }",
     )
-        .unwrap();
+    .unwrap();
     let source = synstructure::Structure::new(&source);
 
     let expanded = malloc_size_of_derive(source).to_string();
@@ -120,7 +120,6 @@ fn test_struct() {
 #[should_panic(expected = "should have an explanation")]
 #[test]
 fn test_no_reason() {
-    let input =
-        syn::parse_str("struct A { #[ignore_malloc_size_of] b: C }").unwrap();
+    let input = syn::parse_str("struct A { #[ignore_malloc_size_of] b: C }").unwrap();
     malloc_size_of_derive(synstructure::Structure::new(&input));
 }

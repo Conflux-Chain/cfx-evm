@@ -46,11 +46,14 @@ impl LinkedBytes {
         answer
     }
 
-    pub fn len(&self) -> usize { self.length }
+    pub fn len(&self) -> usize {
+        self.length
+    }
 }
 
 pub fn read_abi_list<T: ABIVariable>(
-    data: &[u8], pointer: &mut Iter<u8>,
+    data: &[u8],
+    pointer: &mut Iter<u8>,
 ) -> Result<T, ABIDecodeError> {
     let res = if let Some(len) = T::STATIC_LENGTH {
         pull_slice(pointer, len, "Incomplete static input parameter")?
@@ -60,10 +63,7 @@ pub fn read_abi_list<T: ABIVariable>(
             32,
             "Incomplete location for dynamic input parameter",
         )?);
-        abi_require(
-            location < U256::from(data.len()),
-            "Location out of bounds",
-        )?;
+        abi_require(location < U256::from(data.len()), "Location out of bounds")?;
         let loc = location.as_u64() as usize;
         &data[loc..]
     };
@@ -91,9 +91,8 @@ impl ABIListWriter {
             assert_eq!(encoded.len(), len);
             self.heads.append(&mut encoded);
         } else {
-            let mut location = LinkedBytes::from_bytes(padded_big_endian(
-                self.tails.len() + self.heads_length,
-            ));
+            let mut location =
+                LinkedBytes::from_bytes(padded_big_endian(self.tails.len() + self.heads_length));
             self.heads.append(&mut location);
             self.tails.append(&mut encoded);
         }
@@ -107,9 +106,7 @@ impl ABIListWriter {
 }
 
 #[inline]
-pub fn abi_require(
-    claim: bool, desc: &'static str,
-) -> Result<(), ABIDecodeError> {
+pub fn abi_require(claim: bool, desc: &'static str) -> Result<(), ABIDecodeError> {
     if !claim {
         Err(ABIDecodeError(desc))
     } else {
@@ -119,7 +116,9 @@ pub fn abi_require(
 
 #[inline]
 pub fn pull_slice<'a>(
-    iter: &mut Iter<'a, u8>, n: usize, err_desc: &'static str,
+    iter: &mut Iter<'a, u8>,
+    n: usize,
+    err_desc: &'static str,
 ) -> Result<&'a [u8], ABIDecodeError> {
     abi_require(iter.len() >= n, err_desc)?;
 

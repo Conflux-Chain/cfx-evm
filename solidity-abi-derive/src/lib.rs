@@ -33,22 +33,20 @@ pub fn keccak(input_stream: TokenStream) -> TokenStream {
         })
         .collect();
 
-    let types: Vec<Type> =
-        fields.iter().map(|field| field.ty.clone()).collect();
+    let types: Vec<Type> = fields.iter().map(|field| field.ty.clone()).collect();
 
     let dummy_types: Vec<syn::Ident> = (0..types.len())
         .map(|idx| syn::Ident::new(&format!("Field{}", idx), Span::call_site()))
         .collect();
 
-    let abi_crate = match crate_name("solidity-abi")
-        .expect("solidity-abi is present in `Cargo.toml`")
-    {
-        FoundCrate::Itself => quote!(crate),
-        FoundCrate::Name(name) => {
-            let ident = Ident::new(&name, Span::call_site());
-            quote!( #ident )
-        }
-    };
+    let abi_crate =
+        match crate_name("solidity-abi").expect("solidity-abi is present in `Cargo.toml`") {
+            FoundCrate::Itself => quote!(crate),
+            FoundCrate::Name(name) => {
+                let ident = Ident::new(&name, Span::call_site());
+                quote!( #ident )
+            }
+        };
 
     let dummy_const = syn::Ident::new(
         &format!("_IMPL_ABI_VARIABLE_DUMMY_{}", ident),

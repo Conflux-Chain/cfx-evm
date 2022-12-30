@@ -4,8 +4,7 @@
 
 use crate::{bytes::Bytes, hash::KECCAK_EMPTY};
 use cfx_types::{
-    address_util::AddressUtil, Address, AddressSpaceUtil, AddressWithSpace,
-    Space, H256, U256,
+    address_util::AddressUtil, Address, AddressSpaceUtil, AddressWithSpace, Space, H256, U256,
 };
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use rlp_derive::{RlpDecodable, RlpEncodable};
@@ -32,16 +31,7 @@ pub enum AccountError {
 }
 
 #[derive(
-    Clone,
-    Debug,
-    RlpDecodable,
-    RlpEncodable,
-    Ord,
-    PartialOrd,
-    Eq,
-    PartialEq,
-    Serialize,
-    Deserialize,
+    Clone, Debug, RlpDecodable, RlpEncodable, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize,
 )]
 #[serde(rename_all = "camelCase")]
 pub struct DepositInfo {
@@ -56,16 +46,7 @@ pub struct DepositInfo {
 }
 
 #[derive(
-    Clone,
-    Debug,
-    RlpDecodable,
-    RlpEncodable,
-    Ord,
-    PartialOrd,
-    Eq,
-    PartialEq,
-    Serialize,
-    Deserialize,
+    Clone, Debug, RlpDecodable, RlpEncodable, Ord, PartialOrd, Eq, PartialEq, Serialize, Deserialize,
 )]
 #[serde(rename_all = "camelCase")]
 pub struct VoteStakeInfo {
@@ -81,7 +62,9 @@ pub struct VoteStakeInfo {
 pub struct DepositList(pub Vec<DepositInfo>);
 
 impl Encodable for DepositList {
-    fn rlp_append(&self, s: &mut RlpStream) { s.append_list(&self.0); }
+    fn rlp_append(&self, s: &mut RlpStream) {
+        s.append_list(&self.0);
+    }
 }
 
 impl Decodable for DepositList {
@@ -94,18 +77,24 @@ impl Decodable for DepositList {
 impl Deref for DepositList {
     type Target = Vec<DepositInfo>;
 
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl DerefMut for DepositList {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 #[derive(Clone, Debug, Default, Ord, PartialOrd, Eq, PartialEq)]
 pub struct VoteStakeList(pub Vec<VoteStakeInfo>);
 
 impl Encodable for VoteStakeList {
-    fn rlp_append(&self, s: &mut RlpStream) { s.append_list(&self.0); }
+    fn rlp_append(&self, s: &mut RlpStream) {
+        s.append_list(&self.0);
+    }
 }
 
 impl Decodable for VoteStakeList {
@@ -118,17 +107,19 @@ impl Decodable for VoteStakeList {
 impl Deref for VoteStakeList {
     type Target = Vec<VoteStakeInfo>;
 
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl DerefMut for VoteStakeList {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 impl VoteStakeList {
-    pub fn withdrawable_staking_balance(
-        &self, staking_balance: U256, block_number: u64,
-    ) -> U256 {
+    pub fn withdrawable_staking_balance(&self, staking_balance: U256, block_number: u64) -> U256 {
         if !self.is_empty() {
             // Find first index whose `unlock_block_number` is greater than
             // timestamp and all entries before the index could be
@@ -165,9 +156,9 @@ impl VoteStakeList {
     pub fn vote_lock(&mut self, amount: U256, unlock_block_number: u64) {
         let mut updated = false;
         let mut updated_index = 0;
-        match self.binary_search_by(|vote_info| {
-            vote_info.unlock_block_number.cmp(&unlock_block_number)
-        }) {
+        match self
+            .binary_search_by(|vote_info| vote_info.unlock_block_number.cmp(&unlock_block_number))
+        {
             Ok(index) => {
                 if amount > self[index].amount {
                     self[index].amount = amount;
@@ -191,9 +182,7 @@ impl VoteStakeList {
         }
         if updated {
             let rest = self.split_off(updated_index);
-            while !self.is_empty()
-                && self.last().unwrap().amount <= rest[0].amount
-            {
+            while !self.is_empty() && self.last().unwrap().amount <= rest[0].amount {
                 self.pop();
             }
             self.extend_from_slice(&rest);
@@ -209,7 +198,9 @@ pub struct CodeInfo {
 
 impl CodeInfo {
     #[inline]
-    pub fn code_size(&self) -> usize { self.code.len() }
+    pub fn code_size(&self) -> usize {
+        self.code.len()
+    }
 }
 
 impl Encodable for CodeInfo {
@@ -227,17 +218,7 @@ impl Decodable for CodeInfo {
     }
 }
 
-#[derive(
-    Clone,
-    Debug,
-    RlpDecodable,
-    RlpEncodable,
-    Ord,
-    PartialOrd,
-    Eq,
-    PartialEq,
-    Default,
-)]
+#[derive(Clone, Debug, RlpDecodable, RlpEncodable, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub struct SponsorInfo {
     /// This is the address of the sponsor for gas cost of the contract.
     pub sponsor_for_gas: Address,
@@ -313,7 +294,9 @@ pub struct EthereumAccount {
 }
 
 impl Account {
-    pub fn address(&self) -> &AddressWithSpace { &self.address_local_info }
+    pub fn address(&self) -> &AddressWithSpace {
+        &self.address_local_info
+    }
 
     pub fn set_address(&mut self, address: AddressWithSpace) {
         self.address_local_info = address;
@@ -324,7 +307,9 @@ impl Account {
     }
 
     pub fn new_empty_with_balance(
-        address: &AddressWithSpace, balance: &U256, nonce: &U256,
+        address: &AddressWithSpace,
+        balance: &U256,
+        nonce: &U256,
     ) -> Account {
         Self {
             address_local_info: *address,
@@ -417,23 +402,13 @@ impl Account {
         }
     }
 
-    pub fn new_from_rlp(
-        address: Address, rlp: &Rlp,
-    ) -> Result<Self, AccountError> {
+    pub fn new_from_rlp(address: Address, rlp: &Rlp) -> Result<Self, AccountError> {
         let account = match rlp.item_count()? {
-            8 => Self::from_contract_account(
-                address,
-                ContractAccount::decode(rlp)?,
-            ),
+            8 => Self::from_contract_account(address, ContractAccount::decode(rlp)?),
             5 => Self::from_basic_account(address, BasicAccount::decode(rlp)?),
-            3 => Self::from_ethereum_account(
-                address,
-                EthereumAccount::decode(rlp)?,
-            ),
+            3 => Self::from_ethereum_account(address, EthereumAccount::decode(rlp)?),
             _ => {
-                return Err(AccountError::InvalidRlp(
-                    DecoderError::RlpIncorrectListLen,
-                ));
+                return Err(AccountError::InvalidRlp(DecoderError::RlpIncorrectListLen));
             }
         };
         Ok(account)
@@ -467,7 +442,9 @@ impl Encodable for Account {
 }
 
 impl From<DecoderError> for AccountError {
-    fn from(err: DecoderError) -> Self { AccountError::InvalidRlp(err) }
+    fn from(err: DecoderError) -> Self {
+        AccountError::InvalidRlp(err)
+    }
 }
 
 impl fmt::Display for AccountError {
@@ -476,12 +453,10 @@ impl fmt::Display for AccountError {
             AccountError::ReservedAddressSpace(address) => {
                 format!("Address space is reserved for {:?}", address)
             }
-            AccountError::AddressSpaceMismatch(address, address_space) => {
-                format!(
-                    "Address {:?} not in address space {:?}",
-                    address, address_space
-                )
-            }
+            AccountError::AddressSpaceMismatch(address, address_space) => format!(
+                "Address {:?} not in address space {:?}",
+                address, address_space
+            ),
             AccountError::InvalidRlp(err) => {
                 format!("Transaction has invalid RLP structure: {}.", err)
             }
@@ -492,13 +467,13 @@ impl fmt::Display for AccountError {
 }
 
 impl std::error::Error for AccountError {
-    fn description(&self) -> &str { "Account error" }
+    fn description(&self) -> &str {
+        "Account error"
+    }
 }
 
 #[cfg(test)]
-fn test_random_account(
-    type_bit: Option<u8>, non_empty_hash: bool, contract_type: bool,
-) {
+fn test_random_account(type_bit: Option<u8>, non_empty_hash: bool, contract_type: bool) {
     let mut address = Address::random();
     address.set_address_type_bits(type_bit.unwrap_or(0x40));
 

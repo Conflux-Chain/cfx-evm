@@ -231,9 +231,7 @@ impl<Cost: 'static + CostType> vm::Exec for Interpreter<Cost> {
                         return vm::TrapResult::SubCallCreate(TrapError::Create(params, self));
                     }
                 },
-                InterpreterResult::Stopped => {
-                    panic!("Attempted to execute an already stopped VM.")
-                }
+                InterpreterResult::Stopped => panic!("Attempted to execute an already stopped VM."),
             }
         }
     }

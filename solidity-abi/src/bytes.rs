@@ -19,11 +19,8 @@ impl ABIVariable for Bytes {
     fn from_abi(data: &[u8]) -> Result<Self, ABIDecodeError> {
         let pointer = &mut data.iter();
 
-        let expected_length = U256::from_big_endian(pull_slice(
-            pointer,
-            32,
-            "Incomplete length for byte array",
-        )?);
+        let expected_length =
+            U256::from_big_endian(pull_slice(pointer, 32, "Incomplete length for byte array")?);
         let data_without_length = pointer.as_slice();
         if U256::from(data_without_length.len()) < expected_length {
             Err(ABIDecodeError("Invalid length in byte array"))
@@ -46,7 +43,8 @@ impl ABIVariable for Bytes {
 }
 
 impl<const N: usize> ABIVariable for [u8; N]
-where [u8; N]: SolidityBytes
+where
+    [u8; N]: SolidityBytes,
 {
     const BASIC_TYPE: bool = true;
     // We only implement for N<=32. These fixed length bytes are padded with
@@ -85,6 +83,6 @@ macro_rules! mark_solidity_bytes {
     }
 }
 mark_solidity_bytes!(
-    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
-    23, 24, 25, 26, 27, 28, 29, 30, 31, 32
+    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+    28, 29, 30, 31, 32
 );

@@ -20,9 +20,7 @@ use jemallocator::Jemalloc;
 static GLOBAL: Jemalloc = Jemalloc;
 
 use cfg_if::cfg_if;
-use cfx_types::{
-    AddressWithSpace, AllChainID, Space, H160, H256, H512, U256, U512,
-};
+use cfx_types::{AddressWithSpace, AllChainID, Space, H160, H256, H512, U256, U512};
 use hashbrown::HashMap as FastHashMap;
 use parking_lot;
 use slab::Slab;
@@ -57,8 +55,7 @@ impl MallocSizeOfOps {
     pub fn new(
         size_of: VoidPtrToSizeFn,
         malloc_enclosing_size_of: Option<VoidPtrToSizeFn>,
-    ) -> Self
-    {
+    ) -> Self {
         MallocSizeOfOps {
             size_of_op: size_of,
             enclosing_size_of_op: malloc_enclosing_size_of,
@@ -138,7 +135,9 @@ impl<T: MallocSizeOf + ?Sized> MallocSizeOf for Box<T> {
 }
 
 impl MallocSizeOf for () {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize { 0 }
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
 }
 
 impl<T1, T2> MallocSizeOf for (T1, T2)
@@ -170,10 +169,7 @@ where
     T4: MallocSizeOf,
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.0.size_of(ops)
-            + self.1.size_of(ops)
-            + self.2.size_of(ops)
-            + self.3.size_of(ops)
+        self.0.size_of(ops) + self.1.size_of(ops) + self.2.size_of(ops) + self.3.size_of(ops)
     }
 }
 
@@ -215,7 +211,8 @@ impl<T: MallocSizeOf> MallocSizeOf for std::cell::UnsafeCell<T> {
 }
 
 impl<'a, B: ?Sized + ToOwned> MallocSizeOf for std::borrow::Cow<'a, B>
-where B::Owned: MallocSizeOf
+where
+    B::Owned: MallocSizeOf,
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match *self {
@@ -332,9 +329,9 @@ macro_rules! malloc_size_of_hash_set {
                     // then gives us the storage size. This assumes
                     // that the `HashSet`'s contents (values and hashes)
                     // are all stored in a single contiguous heap allocation.
-                    self.iter().next().map_or(0, |t| unsafe {
-                        ops.malloc_enclosing_size_of(t)
-                    })
+                    self.iter()
+                        .next()
+                        .map_or(0, |t| unsafe { ops.malloc_enclosing_size_of(t) })
                 } else {
                     // An estimate.
                     self.capacity() * (size_of::<T>() + size_of::<usize>())
@@ -371,12 +368,11 @@ macro_rules! malloc_size_of_hash_map {
                 // See the implementation for std::collections::HashSet for
                 // details.
                 if ops.has_malloc_enclosing_size_of() {
-                    self.values().next().map_or(0, |v| unsafe {
-                        ops.malloc_enclosing_size_of(v)
-                    })
+                    self.values()
+                        .next()
+                        .map_or(0, |v| unsafe { ops.malloc_enclosing_size_of(v) })
                 } else {
-                    self.capacity()
-                        * (size_of::<V>() + size_of::<K>() + size_of::<usize>())
+                    self.capacity() * (size_of::<V>() + size_of::<K>() + size_of::<usize>())
                 }
             }
         }
@@ -404,7 +400,9 @@ malloc_size_of_hash_map!(FastHashMap<K, V, S>);
 
 // PhantomData is always 0.
 impl<T> MallocSizeOf for std::marker::PhantomData<T> {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize { 0 }
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
 }
 
 impl<T: MallocSizeOf> MallocSizeOf for std::sync::Mutex<T> {
@@ -440,7 +438,8 @@ impl<T: MallocSizeOf> MallocSizeOf for Reverse<T> {
 macro_rules! impl_smallvec {
     ($size:expr) => {
         impl<T> MallocSizeOf for smallvec::SmallVec<[T; $size]>
-        where T: MallocSizeOf
+        where
+            T: MallocSizeOf,
         {
             fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
                 let mut n = if self.spilled() {
@@ -500,20 +499,8 @@ malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
 
-malloc_size_of_is_0!(
-    Range<u8>,
-    Range<u16>,
-    Range<u32>,
-    Range<u64>,
-    Range<usize>
-);
-malloc_size_of_is_0!(
-    Range<i8>,
-    Range<i16>,
-    Range<i32>,
-    Range<i64>,
-    Range<isize>
-);
+malloc_size_of_is_0!(Range<u8>, Range<u16>, Range<u32>, Range<u64>, Range<usize>);
+malloc_size_of_is_0!(Range<i8>, Range<i16>, Range<i32>, Range<i64>, Range<isize>);
 malloc_size_of_is_0!(Range<f32>, Range<f64>);
 
 malloc_size_of_is_0!(
@@ -586,7 +573,9 @@ mod usable_size {
 
     /// No enclosing function defined.
     #[inline]
-    pub fn new_enclosing_size_fn() -> Option<VoidPtrToSizeFn> { None }
+    pub fn new_enclosing_size_fn() -> Option<VoidPtrToSizeFn> {
+        None
+    }
 }
 
 /// Get a new instance of a MallocSizeOfOps

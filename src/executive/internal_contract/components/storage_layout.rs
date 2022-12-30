@@ -1,3 +1,4 @@
+#![allow(unused)]
 use cfx_types::U256;
 use keccak_hash::keccak;
 

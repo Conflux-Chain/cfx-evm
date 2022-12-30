@@ -12,7 +12,7 @@ use cfx_parameters::{
     internal_contract_addresses::SYSTEM_STORAGE_ADDRESS, staking::COLLATERAL_UNITS_PER_STORAGE_KEY,
 };
 use cfx_state::SubstateTrait;
-use cfx_statedb::{Result as DbResult, StateDbExt, StateDbGeneric};
+use cfx_statedb::{Result as DbResult, StateDb, StateDbExt};
 #[cfg(test)]
 use cfx_types::AddressSpaceUtil;
 use cfx_types::{address_util::AddressUtil, Address, AddressWithSpace, Space, H256, U256};
@@ -347,7 +347,7 @@ impl OverlayAccount {
 
     pub fn check_commission_privilege(
         &self,
-        db: &StateDbGeneric,
+        db: &StateDb,
         contract_address: &Address,
         user: &Address,
     ) -> DbResult<bool> {
@@ -583,7 +583,7 @@ impl OverlayAccount {
         self.accumulated_interest_return += *interest;
     }
 
-    pub fn cache_code(&mut self, db: &StateDbGeneric) -> DbResult<bool> {
+    pub fn cache_code(&mut self, db: &StateDb) -> DbResult<bool> {
         trace!(
             "OverlayAccount::cache_code: ic={}; self.code_hash={:?}, self.code_cache={:?}",
             self.is_code_loaded(),
@@ -612,7 +612,7 @@ impl OverlayAccount {
         &mut self,
         cache_deposit_list: bool,
         cache_vote_list: bool,
-        db: &StateDbGeneric,
+        db: &StateDb,
     ) -> DbResult<bool> {
         self.address.assert_native();
         if cache_deposit_list && self.deposit_list.is_none() {
@@ -706,7 +706,7 @@ impl OverlayAccount {
     // If a contract is removed, and then some one transfer balance to it,
     // `storage_at` will return incorrect value. But this case should never
     // happens.
-    pub fn storage_at(&self, db: &StateDbGeneric, key: &[u8]) -> DbResult<U256> {
+    pub fn storage_at(&self, db: &StateDb, key: &[u8]) -> DbResult<U256> {
         if let Some(value) = self.cached_storage_at(key) {
             return Ok(value);
         }
@@ -724,12 +724,7 @@ impl OverlayAccount {
         }
     }
 
-    pub fn change_storage_value(
-        &mut self,
-        db: &StateDbGeneric,
-        key: &[u8],
-        value: U256,
-    ) -> DbResult<()> {
+    pub fn change_storage_value(&mut self, db: &StateDb, key: &[u8], value: U256) -> DbResult<()> {
         let current_value = self.storage_at(db, key)?;
         if !current_value.is_zero() {
             // Constraint requirement: if a key appears in value_write_cache, it
@@ -746,7 +741,7 @@ impl OverlayAccount {
     fn get_and_cache_storage(
         storage_value_read_cache: &mut HashMap<Vec<u8>, U256>,
         storage_owner_lv2_write_cache: &mut HashMap<Vec<u8>, Option<Address>>,
-        db: &StateDbGeneric,
+        db: &StateDb,
         address: &AddressWithSpace,
         key: &[u8],
         cache_ownership: bool,
@@ -811,11 +806,7 @@ impl OverlayAccount {
     /// Return the owner of `key` before this execution. If it is `None`, it
     /// means the value of the key is zero before this execution. Otherwise, the
     /// value of the key is nonzero.
-    pub fn original_ownership_at(
-        &self,
-        db: &StateDbGeneric,
-        key: &Vec<u8>,
-    ) -> DbResult<Option<Address>> {
+    pub fn original_ownership_at(&self, db: &StateDb, key: &Vec<u8>) -> DbResult<Option<Address>> {
         self.address.assert_native();
         if let Some(value) = self.storage_owner_lv2_write_cache.read().get(key) {
             return Ok(value.clone());
@@ -847,7 +838,7 @@ impl OverlayAccount {
     /// account in current execution.
     pub fn commit_ownership_change(
         &mut self,
-        db: &StateDbGeneric,
+        db: &StateDb,
         substate: &mut dyn SubstateTrait,
     ) -> DbResult<()> {
         self.address.assert_native();

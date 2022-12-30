@@ -20,7 +20,9 @@ pub struct TransactionIndex {
 }
 
 impl MallocSizeOf for TransactionIndex {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize { 0 }
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
 }
 
 impl Encodable for TransactionIndex {

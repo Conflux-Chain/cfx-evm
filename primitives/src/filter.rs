@@ -177,7 +177,9 @@ impl fmt::Display for FilterError {
 }
 
 impl error::Error for FilterError {
-    fn description(&self) -> &str { "Filter error" }
+    fn description(&self) -> &str {
+        "Filter error"
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -275,9 +277,7 @@ impl LogFilterParams {
         let blooms = match self.address {
             Some(ref addresses) if !addresses.is_empty() => addresses
                 .iter()
-                .map(|ref address| {
-                    Bloom::from(BloomInput::Raw(address.as_bytes()))
-                })
+                .map(|ref address| Bloom::from(BloomInput::Raw(address.as_bytes())))
                 .collect(),
             _ => vec![Bloom::default()],
         };
@@ -319,14 +319,16 @@ impl LogFilterParams {
                 .iter()
                 .enumerate()
                 .all(|(i, topic)| match *topic {
-                    Some(ref topics) if !topics.is_empty() => topics
-                        .iter()
-                        .any(|topic| log.topics.get(i) == Some(topic)),
+                    Some(ref topics) if !topics.is_empty() => {
+                        topics.iter().any(|topic| log.topics.get(i) == Some(topic))
+                    }
                     _ => true,
                 })
     }
 }
 
 impl From<String> for FilterError {
-    fn from(s: String) -> Self { FilterError::Custom(s) }
+    fn from(s: String) -> Self {
+        FilterError::Custom(s)
+    }
 }

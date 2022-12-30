@@ -478,15 +478,14 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
     }
 
     fn chain_id(&self) -> u64 {
-        todo!("zeroxg migration");
-        // let space = self.local_part.space;
-        // self.local_part
-        //     .machine
-        //     .params()
-        //     .chain_id
-        //     .read()
-        //     .get_chain_id(self.local_part.env.epoch_height)
-        //     .in_space(space) as u64
+        let space = self.local_part.space;
+        self.local_part
+            .machine
+            .params()
+            .chain_id
+            .read()
+            .get_chain_id(self.local_part.env.epoch_height)
+            .in_space(space) as u64
     }
 
     fn depth(&self) -> usize {

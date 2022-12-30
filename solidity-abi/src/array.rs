@@ -3,10 +3,7 @@
 // See http://www.gnu.org/licenses/
 
 use super::{
-    utils::{
-        padded_big_endian, pull_slice, read_abi_list, ABIListWriter,
-        LinkedBytes,
-    },
+    utils::{padded_big_endian, pull_slice, read_abi_list, ABIListWriter, LinkedBytes},
     ABIDecodeError, ABIVariable,
 };
 use cfx_types::U256;
@@ -36,9 +33,8 @@ impl<T: ABIVariable> ABIVariable for Vec<T> {
 
     fn to_abi(&self) -> LinkedBytes {
         let length = LinkedBytes::from_bytes(padded_big_endian(self.len()));
-        let mut recorder = ABIListWriter::with_heads_length(
-            T::STATIC_LENGTH.unwrap_or(32) * self.len(),
-        );
+        let mut recorder =
+            ABIListWriter::with_heads_length(T::STATIC_LENGTH.unwrap_or(32) * self.len());
 
         for item in self {
             recorder.write_down(item);
@@ -60,8 +56,7 @@ impl<T: ABIVariable> ABIVariable for Vec<T> {
 
 impl<T: ABIVariable + Debug, const N: usize> ABIVariable for [T; N] {
     const BASIC_TYPE: bool = false;
-    const STATIC_LENGTH: Option<usize> = if let Some(length) = T::STATIC_LENGTH
-    {
+    const STATIC_LENGTH: Option<usize> = if let Some(length) = T::STATIC_LENGTH {
         Some(length * N)
     } else {
         None
@@ -75,15 +70,12 @@ impl<T: ABIVariable + Debug, const N: usize> ABIVariable for [T; N] {
         for _ in 0..N {
             results.push(read_abi_list::<T>(data_without_length, pointer)?);
         }
-        let results =
-            <[T; N]>::try_from(results).expect("Vector length must correct");
+        let results = <[T; N]>::try_from(results).expect("Vector length must correct");
         Ok(results)
     }
 
     fn to_abi(&self) -> LinkedBytes {
-        let mut recorder = ABIListWriter::with_heads_length(
-            T::STATIC_LENGTH.unwrap_or(32) * N,
-        );
+        let mut recorder = ABIListWriter::with_heads_length(T::STATIC_LENGTH.unwrap_or(32) * N);
 
         for item in self {
             recorder.write_down(item);

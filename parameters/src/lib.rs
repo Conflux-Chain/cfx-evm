@@ -103,8 +103,7 @@ pub mod consensus_internal {
 
     // The number of blocks to settle a DAO parameter vote.
     // It's set to two months now.
-    pub const DAO_PARAMETER_VOTE_PERIOD: u64 =
-        super::staking::BLOCKS_PER_DAY * 30 * 2;
+    pub const DAO_PARAMETER_VOTE_PERIOD: u64 = super::staking::BLOCKS_PER_DAY * 30 * 2;
     // DAO votes are only effective if the total vote count reaches this minimal
     // percentage of pos staking tokens.
     // The condition is checked against each voted parameter separately.
@@ -231,8 +230,7 @@ pub mod staking {
     use cfx_types::U256;
 
     /// This is the number of blocks per second.
-    pub const BLOCKS_PER_SECOND: u64 =
-        1000000 / TARGET_AVERAGE_BLOCK_GENERATION_PERIOD;
+    pub const BLOCKS_PER_SECOND: u64 = 1000000 / TARGET_AVERAGE_BLOCK_GENERATION_PERIOD;
     /// This is the number of blocks per hour.
     pub const BLOCKS_PER_HOUR: u64 = BLOCKS_PER_SECOND * 60 * 60;
     /// This is the number of blocks per day.

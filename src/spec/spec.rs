@@ -3,7 +3,6 @@
 // See http://www.gnu.org/licenses/
 
 use crate::vm;
-#[allow(unused)]
 use cfx_internal_common::{ChainIdParams, ChainIdParamsInner};
 use cfx_parameters::{
     block::{EVM_TRANSACTION_BLOCK_RATIO, EVM_TRANSACTION_GAS_RATIO},
@@ -15,7 +14,6 @@ use cfx_parameters::{
         ANTICONE_PENALTY_RATIO, DAO_PARAMETER_VOTE_PERIOD, INITIAL_BASE_MINING_REWARD_IN_UCFX,
     },
 };
-#[allow(unused)]
 use cfx_types::{AllChainID, U256, U512};
 use primitives::{block::BlockHeight, BlockNumber};
 use std::collections::BTreeMap;
@@ -117,7 +115,7 @@ impl Default for CommonParams {
             account_start_nonce: 0x00.into(),
             maximum_extra_data_size: 0x20,
             network_id: 0x1,
-            chain_id: todo!("zeroxg migration"), /* ChainIdParamsInner::new_simple(AllChainID::new(1, 1)) */
+            chain_id: ChainIdParamsInner::new_simple(AllChainID::new(1, 1)),
             subprotocol_name: "cfx".into(),
             min_gas_limit: 10_000_000.into(),
             gas_limit_bound_divisor: 0x0400.into(),

@@ -21,11 +21,11 @@ pub struct FromKeyBytesResult<ShouldCheckInput: StaticBool> {
 impl<'a> ConditionalReturnValue<'a> for FromKeyBytesResult<SkipInputCheck> {
     type Output = StorageKeyWithSpace<'a>;
 
-    fn from_key(k: StorageKeyWithSpace<'a>) -> Self::Output { k }
+    fn from_key(k: StorageKeyWithSpace<'a>) -> Self::Output {
+        k
+    }
 
-    fn from_result(
-        _r: Result<StorageKeyWithSpace<'a>, String>,
-    ) -> Self::Output {
+    fn from_result(_r: Result<StorageKeyWithSpace<'a>, String>) -> Self::Output {
         unreachable!()
     }
 }
@@ -33,7 +33,9 @@ impl<'a> ConditionalReturnValue<'a> for FromKeyBytesResult<SkipInputCheck> {
 impl<'a> ConditionalReturnValue<'a> for FromKeyBytesResult<CheckInput> {
     type Output = Result<StorageKeyWithSpace<'a>, String>;
 
-    fn from_key(k: StorageKeyWithSpace<'a>) -> Self::Output { Ok(k) }
+    fn from_key(k: StorageKeyWithSpace<'a>) -> Self::Output {
+        Ok(k)
+    }
 
     fn from_result(r: Result<StorageKeyWithSpace<'a>, String>) -> Self::Output {
         r
@@ -86,9 +88,7 @@ impl<'a> StorageKey<'a> {
         StorageKey::StorageRootKey(&address.0)
     }
 
-    pub fn new_storage_key(
-        address: &'a Address, storage_key: &'a [u8],
-    ) -> Self {
+    pub fn new_storage_key(address: &'a Address, storage_key: &'a [u8]) -> Self {
         StorageKey::StorageKey {
             address_bytes: &address.0,
             storage_key,
@@ -136,16 +136,11 @@ impl<'a> StorageKeyWithSpace<'a> {
     const VOTE_LIST_LEN: usize = 4;
     const VOTE_LIST_PREFIX: &'static [u8] = b"vote";
 
-    pub fn to_delta_mpt_key_bytes(
-        &self, padding: &DeltaMptKeyPadding,
-    ) -> Vec<u8> {
+    pub fn to_delta_mpt_key_bytes(&self, padding: &DeltaMptKeyPadding) -> Vec<u8> {
         let key_bytes = match self.key {
             StorageKey::AccountKey(address_bytes) => {
                 if address_bytes.len() == Self::ACCOUNT_BYTES {
-                    delta_mpt_storage_key::new_account_key(
-                        address_bytes,
-                        padding,
-                    )
+                    delta_mpt_storage_key::new_account_key(address_bytes, padding)
                 } else if cfg!(feature = "test_no_account_length_check") {
                     // The branch is test only. When an address with incomplete
                     // length, it's passed to DeltaMPT directly.
@@ -164,35 +159,21 @@ impl<'a> StorageKeyWithSpace<'a> {
                 }
             }
             StorageKey::StorageRootKey(address_bytes) => {
-                delta_mpt_storage_key::new_storage_root_key(
-                    address_bytes,
-                    padding,
-                )
+                delta_mpt_storage_key::new_storage_root_key(address_bytes, padding)
             }
             StorageKey::StorageKey {
                 address_bytes,
                 storage_key,
-            } => delta_mpt_storage_key::new_storage_key(
-                address_bytes,
-                storage_key,
-                padding,
-            ),
+            } => delta_mpt_storage_key::new_storage_key(address_bytes, storage_key, padding),
             StorageKey::CodeRootKey(address_bytes) => {
                 delta_mpt_storage_key::new_code_root_key(address_bytes, padding)
             }
             StorageKey::CodeKey {
                 address_bytes,
                 code_hash_bytes,
-            } => delta_mpt_storage_key::new_code_key(
-                address_bytes,
-                code_hash_bytes,
-                padding,
-            ),
+            } => delta_mpt_storage_key::new_code_key(address_bytes, code_hash_bytes, padding),
             StorageKey::DepositListKey(address_bytes) => {
-                delta_mpt_storage_key::new_deposit_list_key(
-                    address_bytes,
-                    padding,
-                )
+                delta_mpt_storage_key::new_deposit_list_key(address_bytes, padding)
             }
             StorageKey::VoteListKey(address_bytes) => {
                 delta_mpt_storage_key::new_vote_list_key(address_bytes, padding)
@@ -221,9 +202,7 @@ impl<'a> StorageKeyWithSpace<'a> {
                 key
             }
             StorageKey::StorageRootKey(address_bytes) => {
-                let mut key = Vec::with_capacity(
-                    Self::ACCOUNT_BYTES + Self::STORAGE_PREFIX_LEN,
-                );
+                let mut key = Vec::with_capacity(Self::ACCOUNT_BYTES + Self::STORAGE_PREFIX_LEN);
                 key.extend_from_slice(address_bytes);
                 key.extend_from_slice(Self::STORAGE_PREFIX);
 
@@ -234,9 +213,7 @@ impl<'a> StorageKeyWithSpace<'a> {
                 storage_key,
             } => {
                 let mut key = Vec::with_capacity(
-                    Self::ACCOUNT_BYTES
-                        + Self::STORAGE_PREFIX_LEN
-                        + storage_key.len(),
+                    Self::ACCOUNT_BYTES + Self::STORAGE_PREFIX_LEN + storage_key.len(),
                 );
                 key.extend_from_slice(address_bytes);
                 key.extend_from_slice(Self::STORAGE_PREFIX);
@@ -245,9 +222,7 @@ impl<'a> StorageKeyWithSpace<'a> {
                 key
             }
             StorageKey::CodeRootKey(address_bytes) => {
-                let mut key = Vec::with_capacity(
-                    Self::ACCOUNT_BYTES + Self::CODE_HASH_PREFIX_LEN,
-                );
+                let mut key = Vec::with_capacity(Self::ACCOUNT_BYTES + Self::CODE_HASH_PREFIX_LEN);
                 key.extend_from_slice(address_bytes);
                 key.extend_from_slice(Self::CODE_HASH_PREFIX);
 
@@ -258,9 +233,7 @@ impl<'a> StorageKeyWithSpace<'a> {
                 code_hash_bytes,
             } => {
                 let mut key = Vec::with_capacity(
-                    Self::ACCOUNT_BYTES
-                        + Self::CODE_HASH_PREFIX_LEN
-                        + Self::CODE_HASH_BYTES,
+                    Self::ACCOUNT_BYTES + Self::CODE_HASH_PREFIX_LEN + Self::CODE_HASH_BYTES,
                 );
                 key.extend_from_slice(address_bytes);
                 key.extend_from_slice(Self::CODE_HASH_PREFIX);
@@ -269,18 +242,14 @@ impl<'a> StorageKeyWithSpace<'a> {
                 key
             }
             StorageKey::DepositListKey(address_bytes) => {
-                let mut key = Vec::with_capacity(
-                    Self::ACCOUNT_BYTES + Self::DEPOSIT_LIST_LEN,
-                );
+                let mut key = Vec::with_capacity(Self::ACCOUNT_BYTES + Self::DEPOSIT_LIST_LEN);
                 key.extend_from_slice(address_bytes);
                 key.extend_from_slice(Self::DEPOSIT_LIST_PREFIX);
 
                 key
             }
             StorageKey::VoteListKey(address_bytes) => {
-                let mut key = Vec::with_capacity(
-                    Self::ACCOUNT_BYTES + Self::VOTE_LIST_LEN,
-                );
+                let mut key = Vec::with_capacity(Self::ACCOUNT_BYTES + Self::VOTE_LIST_LEN);
                 key.extend_from_slice(address_bytes);
                 key.extend_from_slice(Self::VOTE_LIST_PREFIX);
 
@@ -307,12 +276,13 @@ impl<'a> StorageKeyWithSpace<'a> {
     pub fn from_key_bytes<ShouldCheckInput: StaticBool>(
         bytes: &'a [u8],
     ) -> <FromKeyBytesResult<ShouldCheckInput> as ConditionalReturnValue<'a>>::Output
-where FromKeyBytesResult<ShouldCheckInput>: ConditionalReturnValue<'a>{
+    where
+        FromKeyBytesResult<ShouldCheckInput>: ConditionalReturnValue<'a>,
+    {
         let key = if bytes.len() <= Self::ACCOUNT_BYTES {
             StorageKey::AccountKey(bytes).with_native_space()
         } else if bytes.len() == Self::ACCOUNT_BYTES + 1 {
-            StorageKey::AccountKey(&bytes[..Self::ACCOUNT_BYTES])
-                .with_evm_space()
+            StorageKey::AccountKey(&bytes[..Self::ACCOUNT_BYTES]).with_evm_space()
         } else {
             let address_bytes = &bytes[0..Self::ACCOUNT_BYTES];
 
@@ -334,9 +304,7 @@ where FromKeyBytesResult<ShouldCheckInput>: ConditionalReturnValue<'a>{
                 &bytes[Self::ACCOUNT_BYTES..]
             };
 
-            let storage_key_no_space = if bytes
-                .starts_with(Self::STORAGE_PREFIX)
-            {
+            let storage_key_no_space = if bytes.starts_with(Self::STORAGE_PREFIX) {
                 let bytes = &bytes[Self::STORAGE_PREFIX_LEN..];
                 if bytes.len() > 0 {
                     StorageKey::StorageKey {
@@ -401,24 +369,27 @@ pub struct DeltaMptKeyPadding([u8; delta_mpt_storage_key::KEY_PADDING_BYTES]);
 pub use delta_mpt_storage_key::KEY_PADDING_BYTES as DELTA_MPT_KEY_PADDING_BYTES;
 lazy_static! {
     pub static ref GENESIS_DELTA_MPT_KEY_PADDING: DeltaMptKeyPadding =
-        StorageKeyWithSpace::delta_mpt_padding(
-            &MERKLE_NULL_NODE,
-            &MERKLE_NULL_NODE
-        );
+        StorageKeyWithSpace::delta_mpt_padding(&MERKLE_NULL_NODE, &MERKLE_NULL_NODE);
 }
 
 impl Deref for DeltaMptKeyPadding {
     type Target = [u8; delta_mpt_storage_key::KEY_PADDING_BYTES];
 
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl DerefMut for DeltaMptKeyPadding {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 impl Encodable for DeltaMptKeyPadding {
-    fn rlp_append(&self, s: &mut RlpStream) { s.append_internal(&&self[..]); }
+    fn rlp_append(&self, s: &mut RlpStream) {
+        s.append_internal(&&self[..]);
+    }
 }
 
 impl Decodable for DeltaMptKeyPadding {
@@ -457,13 +428,13 @@ mod delta_mpt_storage_key {
     }
 
     fn compute_address_keypart(
-        address: &[u8], padding: &DeltaMptKeyPadding,
+        address: &[u8],
+        padding: &DeltaMptKeyPadding,
     ) -> [u8; ACCOUNT_KEYPART_BYTES] {
         // Manually asserting the size by using new_buffer instead of
         // Vec#extend_from_slice.
         let mut padded = new_buffer(ACCOUNT_KEYPART_BYTES);
-        padded[..ACCOUNT_PADDING_BYTES]
-            .copy_from_slice(&padding[..ACCOUNT_PADDING_BYTES]);
+        padded[..ACCOUNT_PADDING_BYTES].copy_from_slice(&padding[..ACCOUNT_PADDING_BYTES]);
         padded[ACCOUNT_PADDING_BYTES..].copy_from_slice(address);
 
         let mut address_hash = [0u8; ACCOUNT_KEYPART_BYTES];
@@ -475,45 +446,40 @@ mod delta_mpt_storage_key {
     }
 
     fn compute_storage_key_padding(
-        storage_key: &[u8], padding: &DeltaMptKeyPadding,
+        storage_key: &[u8],
+        padding: &DeltaMptKeyPadding,
     ) -> DeltaMptKeyPadding {
-        let mut padded =
-            Vec::with_capacity(KEY_PADDING_BYTES + storage_key.len());
+        let mut padded = Vec::with_capacity(KEY_PADDING_BYTES + storage_key.len());
         padded.extend_from_slice(&padding.0);
         padded.extend_from_slice(storage_key);
 
         DeltaMptKeyPadding(keccak(padded).0)
     }
 
-    fn extend_address(
-        key: &mut Vec<u8>, address: &[u8], padding: &DeltaMptKeyPadding,
-    ) {
+    fn extend_address(key: &mut Vec<u8>, address: &[u8], padding: &DeltaMptKeyPadding) {
         let padded_address = compute_address_keypart(address, padding);
 
         key.extend_from_slice(padded_address.as_ref());
     }
 
     fn extend_key_with_prefix(
-        key: &mut Vec<u8>, address: &[u8], padding: &DeltaMptKeyPadding,
+        key: &mut Vec<u8>,
+        address: &[u8],
+        padding: &DeltaMptKeyPadding,
         prefix: &[u8],
-    )
-    {
+    ) {
         extend_address(key, address, padding);
         key.extend_from_slice(prefix);
     }
 
-    pub fn new_account_key(
-        address: &[u8], padding: &DeltaMptKeyPadding,
-    ) -> Vec<u8> {
+    pub fn new_account_key(address: &[u8], padding: &DeltaMptKeyPadding) -> Vec<u8> {
         let mut key = Vec::with_capacity(ACCOUNT_KEYPART_BYTES);
         extend_address(&mut key, address, padding);
 
         key
     }
 
-    fn extend_storage_key(
-        key: &mut Vec<u8>, storage_key: &[u8], padding: &DeltaMptKeyPadding,
-    ) {
+    fn extend_storage_key(key: &mut Vec<u8>, storage_key: &[u8], padding: &DeltaMptKeyPadding) {
         key.extend_from_slice(
             &compute_storage_key_padding(storage_key, padding)
                 [StorageKeyWithSpace::STORAGE_PREFIX_LEN..],
@@ -521,12 +487,9 @@ mod delta_mpt_storage_key {
         key.extend_from_slice(storage_key);
     }
 
-    pub fn new_storage_root_key(
-        address: &[u8], padding: &DeltaMptKeyPadding,
-    ) -> Vec<u8> {
-        let mut key = Vec::with_capacity(
-            ACCOUNT_KEYPART_BYTES + StorageKeyWithSpace::STORAGE_PREFIX_LEN,
-        );
+    pub fn new_storage_root_key(address: &[u8], padding: &DeltaMptKeyPadding) -> Vec<u8> {
+        let mut key =
+            Vec::with_capacity(ACCOUNT_KEYPART_BYTES + StorageKeyWithSpace::STORAGE_PREFIX_LEN);
         extend_key_with_prefix(
             &mut key,
             address,
@@ -538,11 +501,12 @@ mod delta_mpt_storage_key {
     }
 
     pub fn new_storage_key(
-        address: &[u8], storage_key: &[u8], padding: &DeltaMptKeyPadding,
+        address: &[u8],
+        storage_key: &[u8],
+        padding: &DeltaMptKeyPadding,
     ) -> Vec<u8> {
-        let mut key = Vec::with_capacity(
-            ACCOUNT_KEYPART_BYTES + KEY_PADDING_BYTES + storage_key.len(),
-        );
+        let mut key =
+            Vec::with_capacity(ACCOUNT_KEYPART_BYTES + KEY_PADDING_BYTES + storage_key.len());
         extend_key_with_prefix(
             &mut key,
             address,
@@ -554,12 +518,9 @@ mod delta_mpt_storage_key {
         key
     }
 
-    pub fn new_code_root_key(
-        address: &[u8], padding: &DeltaMptKeyPadding,
-    ) -> Vec<u8> {
-        let mut key = Vec::with_capacity(
-            ACCOUNT_KEYPART_BYTES + StorageKeyWithSpace::STORAGE_PREFIX_LEN,
-        );
+    pub fn new_code_root_key(address: &[u8], padding: &DeltaMptKeyPadding) -> Vec<u8> {
+        let mut key =
+            Vec::with_capacity(ACCOUNT_KEYPART_BYTES + StorageKeyWithSpace::STORAGE_PREFIX_LEN);
         extend_key_with_prefix(
             &mut key,
             address,
@@ -570,9 +531,7 @@ mod delta_mpt_storage_key {
         key
     }
 
-    pub fn new_code_key(
-        address: &[u8], code_hash: &[u8], padding: &DeltaMptKeyPadding,
-    ) -> Vec<u8> {
+    pub fn new_code_key(address: &[u8], code_hash: &[u8], padding: &DeltaMptKeyPadding) -> Vec<u8> {
         let mut key = Vec::with_capacity(
             ACCOUNT_KEYPART_BYTES
                 + StorageKeyWithSpace::CODE_HASH_PREFIX_LEN
@@ -589,12 +548,9 @@ mod delta_mpt_storage_key {
         key
     }
 
-    pub fn new_deposit_list_key(
-        address: &[u8], padding: &DeltaMptKeyPadding,
-    ) -> Vec<u8> {
-        let mut key = Vec::with_capacity(
-            ACCOUNT_KEYPART_BYTES + StorageKeyWithSpace::DEPOSIT_LIST_LEN,
-        );
+    pub fn new_deposit_list_key(address: &[u8], padding: &DeltaMptKeyPadding) -> Vec<u8> {
+        let mut key =
+            Vec::with_capacity(ACCOUNT_KEYPART_BYTES + StorageKeyWithSpace::DEPOSIT_LIST_LEN);
         extend_key_with_prefix(
             &mut key,
             address,
@@ -604,12 +560,9 @@ mod delta_mpt_storage_key {
         key
     }
 
-    pub fn new_vote_list_key(
-        address: &[u8], padding: &DeltaMptKeyPadding,
-    ) -> Vec<u8> {
-        let mut key = Vec::with_capacity(
-            ACCOUNT_KEYPART_BYTES + StorageKeyWithSpace::VOTE_LIST_LEN,
-        );
+    pub fn new_vote_list_key(address: &[u8], padding: &DeltaMptKeyPadding) -> Vec<u8> {
+        let mut key =
+            Vec::with_capacity(ACCOUNT_KEYPART_BYTES + StorageKeyWithSpace::VOTE_LIST_LEN);
         extend_key_with_prefix(
             &mut key,
             address,
@@ -621,27 +574,24 @@ mod delta_mpt_storage_key {
 
     impl<'a> StorageKeyWithSpace<'a> {
         pub fn delta_mpt_padding(
-            snapshot_root: &MerkleHash, intermediate_delta_root: &MerkleHash,
+            snapshot_root: &MerkleHash,
+            intermediate_delta_root: &MerkleHash,
         ) -> DeltaMptKeyPadding {
-            let mut buffer = Vec::with_capacity(
-                snapshot_root.0.len() + intermediate_delta_root.0.len(),
-            );
+            let mut buffer =
+                Vec::with_capacity(snapshot_root.0.len() + intermediate_delta_root.0.len());
             buffer.extend_from_slice(&snapshot_root.0);
             buffer.extend_from_slice(&intermediate_delta_root.0);
             DeltaMptKeyPadding(keccak(&buffer).0)
         }
 
-        pub fn from_delta_mpt_key(
-            delta_mpt_key: &'a [u8],
-        ) -> StorageKeyWithSpace<'a> {
+        pub fn from_delta_mpt_key(delta_mpt_key: &'a [u8]) -> StorageKeyWithSpace<'a> {
             let remaining_bytes = delta_mpt_key;
             let bytes_len = remaining_bytes.len();
             if bytes_len < ACCOUNT_KEYPART_BYTES {
                 if cfg!(feature = "test_no_account_length_check") {
                     // The branch is test only. When an address with incomplete
                     // length, it's passed to DeltaMPT directly.
-                    return StorageKey::AccountKey(remaining_bytes)
-                        .with_native_space();
+                    return StorageKey::AccountKey(remaining_bytes).with_native_space();
                 } else {
                     if cfg!(debug_assertions) {
                         unreachable!(
@@ -653,18 +603,14 @@ mod delta_mpt_storage_key {
                     }
                 }
             } else {
-                let address_bytes = &remaining_bytes
-                    [ACCOUNT_PADDING_BYTES..ACCOUNT_KEYPART_BYTES];
+                let address_bytes = &remaining_bytes[ACCOUNT_PADDING_BYTES..ACCOUNT_KEYPART_BYTES];
                 if bytes_len == ACCOUNT_KEYPART_BYTES {
-                    return StorageKey::AccountKey(address_bytes)
-                        .with_native_space();
+                    return StorageKey::AccountKey(address_bytes).with_native_space();
                 }
                 if bytes_len == ACCOUNT_KEYPART_BYTES + 1 {
-                    return StorageKey::AccountKey(address_bytes)
-                        .with_evm_space();
+                    return StorageKey::AccountKey(address_bytes).with_evm_space();
                 }
-                let extension_bit =
-                    remaining_bytes[ACCOUNT_KEYPART_BYTES] & 0x80 != 0;
+                let extension_bit = remaining_bytes[ACCOUNT_KEYPART_BYTES] & 0x80 != 0;
 
                 let remaining_bytes = if extension_bit {
                     assert_eq!(
@@ -679,9 +625,7 @@ mod delta_mpt_storage_key {
                 let storage_key_no_space = if remaining_bytes
                     .starts_with(StorageKeyWithSpace::STORAGE_PREFIX)
                 {
-                    if remaining_bytes.len()
-                        == StorageKeyWithSpace::STORAGE_PREFIX_LEN
-                    {
+                    if remaining_bytes.len() == StorageKeyWithSpace::STORAGE_PREFIX_LEN {
                         StorageKey::StorageRootKey(address_bytes)
                     } else {
                         StorageKey::StorageKey {
@@ -689,11 +633,8 @@ mod delta_mpt_storage_key {
                             storage_key: &remaining_bytes[KEY_PADDING_BYTES..],
                         }
                     }
-                } else if remaining_bytes
-                    .starts_with(StorageKeyWithSpace::CODE_HASH_PREFIX)
-                {
-                    let bytes = &remaining_bytes
-                        [StorageKeyWithSpace::CODE_HASH_PREFIX_LEN..];
+                } else if remaining_bytes.starts_with(StorageKeyWithSpace::CODE_HASH_PREFIX) {
+                    let bytes = &remaining_bytes[StorageKeyWithSpace::CODE_HASH_PREFIX_LEN..];
                     if bytes.len() > 0 {
                         StorageKey::CodeKey {
                             address_bytes,
@@ -702,13 +643,9 @@ mod delta_mpt_storage_key {
                     } else {
                         StorageKey::CodeRootKey(address_bytes)
                     }
-                } else if remaining_bytes
-                    .starts_with(StorageKeyWithSpace::DEPOSIT_LIST_PREFIX)
-                {
+                } else if remaining_bytes.starts_with(StorageKeyWithSpace::DEPOSIT_LIST_PREFIX) {
                     StorageKey::DepositListKey(address_bytes)
-                } else if remaining_bytes
-                    .starts_with(StorageKeyWithSpace::VOTE_LIST_PREFIX)
-                {
+                } else if remaining_bytes.starts_with(StorageKeyWithSpace::VOTE_LIST_PREFIX) {
                     StorageKey::VoteListKey(address_bytes)
                 } else {
                     if cfg!(debug_assertions) {
@@ -778,8 +715,7 @@ mod tests {
             .parse::<Address>()
             .unwrap();
 
-        let key =
-            StorageKey::new_storage_root_key(&address).with_native_space();
+        let key = StorageKey::new_storage_root_key(&address).with_native_space();
         let bytes = key.to_delta_mpt_key_bytes(&padding);
         let key2 = StorageKeyWithSpace::from_delta_mpt_key(&bytes[..]);
         assert_eq!(key, key2);
@@ -800,14 +736,12 @@ mod tests {
 
         let storage_key = &[99; 32];
 
-        let key = StorageKey::new_storage_key(&address, storage_key)
-            .with_native_space();
+        let key = StorageKey::new_storage_key(&address, storage_key).with_native_space();
         let bytes = key.to_delta_mpt_key_bytes(&padding);
         let key2 = StorageKeyWithSpace::from_delta_mpt_key(&bytes[..]);
         assert_eq!(key, key2);
 
-        let key =
-            StorageKey::new_storage_key(&address, storage_key).with_evm_space();
+        let key = StorageKey::new_storage_key(&address, storage_key).with_evm_space();
         let bytes = key.to_delta_mpt_key_bytes(&padding);
         let key2 = StorageKeyWithSpace::from_delta_mpt_key(&bytes[..]);
         assert_eq!(key, key2);
@@ -840,19 +774,16 @@ mod tests {
             .parse::<Address>()
             .unwrap();
 
-        let code_hash =
-            "0f572e5295c57f15886f9b263e2f6d2d6c7b5ec66d2d6c7b5ec66d2d6c7b5ec6"
-                .parse::<H256>()
-                .unwrap();
+        let code_hash = "0f572e5295c57f15886f9b263e2f6d2d6c7b5ec66d2d6c7b5ec66d2d6c7b5ec6"
+            .parse::<H256>()
+            .unwrap();
 
-        let key =
-            StorageKey::new_code_key(&address, &code_hash).with_native_space();
+        let key = StorageKey::new_code_key(&address, &code_hash).with_native_space();
         let bytes = key.to_delta_mpt_key_bytes(&padding);
         let key2 = StorageKeyWithSpace::from_delta_mpt_key(&bytes[..]);
         assert_eq!(key, key2);
 
-        let key =
-            StorageKey::new_code_key(&address, &code_hash).with_evm_space();
+        let key = StorageKey::new_code_key(&address, &code_hash).with_evm_space();
         let bytes = key.to_delta_mpt_key_bytes(&padding);
         let key2 = StorageKeyWithSpace::from_delta_mpt_key(&bytes[..]);
         assert_eq!(key, key2);
@@ -866,8 +797,7 @@ mod tests {
             .parse::<Address>()
             .unwrap();
 
-        let key =
-            StorageKey::new_deposit_list_key(&address).with_native_space();
+        let key = StorageKey::new_deposit_list_key(&address).with_native_space();
         let bytes = key.to_delta_mpt_key_bytes(&padding);
         let key2 = StorageKeyWithSpace::from_delta_mpt_key(&bytes[..]);
         assert_eq!(key, key2);

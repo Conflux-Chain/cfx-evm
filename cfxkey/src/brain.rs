@@ -22,11 +22,11 @@ use parity_wordlist;
 pub struct Brain(String);
 
 impl Brain {
-    pub fn new(s: String) -> Self { Brain(s) }
+    pub fn new(s: String) -> Self {
+        Brain(s)
+    }
 
-    pub fn validate_phrase(
-        phrase: &str, expected_words: usize,
-    ) -> Result<(), ::WordlistError> {
+    pub fn validate_phrase(phrase: &str, expected_words: usize) -> Result<(), ::WordlistError> {
         parity_wordlist::validate_phrase(phrase, expected_words)
     }
 }
@@ -45,15 +45,11 @@ impl Generator for Brain {
             match i > 16384 {
                 false => i += 1,
                 true => {
-                    if let Ok(pair) = Secret::from_unsafe_slice(&secret)
-                        .and_then(KeyPair::from_secret)
+                    if let Ok(pair) =
+                        Secret::from_unsafe_slice(&secret).and_then(KeyPair::from_secret)
                     {
                         if pair.address()[0] == 0x10 {
-                            trace!(
-                                "Testing: {}, got: {:?}",
-                                self.0,
-                                pair.address()
-                            );
+                            trace!("Testing: {}, got: {:?}", self.0, pair.address());
                             return Ok(pair);
                         }
                     }

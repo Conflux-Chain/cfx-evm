@@ -2,12 +2,6 @@
 // Conflux is free software and distributed under GNU General Public License.
 // See http://www.gnu.org/licenses/
 
-#[cfg(feature = "new_state_impl")]
-pub(self) mod cache_object;
-#[cfg(feature = "new_state_impl")]
-pub mod state;
-#[cfg(feature = "new_state_impl")]
-pub(self) mod state_object_cache;
 pub mod state_trait;
 pub mod substate_trait;
 pub mod tracer;
@@ -48,33 +42,41 @@ pub trait StateDbOps {
     fn get_raw(&self, key: StorageKeyWithSpace) -> Result<Option<Arc<[u8]>>>;
 
     fn get<T>(&self, key: StorageKeyWithSpace) -> Result<Option<T>>
-    where T: ::rlp::Decodable;
+    where
+        T: ::rlp::Decodable;
 
     fn set<T>(
-        &mut self, key: StorageKeyWithSpace, value: &T,
+        &mut self,
+        key: StorageKeyWithSpace,
+        value: &T,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
     ) -> Result<()>
     where
         T: ::rlp::Encodable + IsDefault;
 
     fn delete(
-        &mut self, key: StorageKeyWithSpace,
+        &mut self,
+        key: StorageKeyWithSpace,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
     ) -> Result<()>;
 }
 
-impl StateDbOps for StateDbGeneric {
+impl StateDbOps for StateDb {
     fn get_raw(&self, key: StorageKeyWithSpace) -> Result<Option<Arc<[u8]>>> {
         Self::get_raw(self, key)
     }
 
     fn get<T>(&self, key: StorageKeyWithSpace) -> Result<Option<T>>
-    where T: ::rlp::Decodable {
+    where
+        T: ::rlp::Decodable,
+    {
         <Self as StateDbExt>::get(self, key)
     }
 
     fn set<T>(
-        &mut self, key: StorageKeyWithSpace, value: &T,
+        &mut self,
+        key: StorageKeyWithSpace,
+        value: &T,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
     ) -> Result<()>
     where
@@ -84,16 +86,16 @@ impl StateDbOps for StateDbGeneric {
     }
 
     fn delete(
-        &mut self, key: StorageKeyWithSpace,
+        &mut self,
+        key: StorageKeyWithSpace,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
-    ) -> Result<()>
-    {
+    ) -> Result<()> {
         Self::delete(self, key, debug_record)
     }
 }
 
 use cfx_internal_common::debug::ComputeEpochDebugRecord;
-use cfx_statedb::{Result, StateDbExt, StateDbGeneric};
+use cfx_statedb::{Result, StateDbExt, StateDb};
 use cfx_types::{Address, AddressWithSpace, U256};
 use primitives::{is_default::IsDefault, StorageKeyWithSpace};
 use std::{collections::HashSet, sync::Arc};

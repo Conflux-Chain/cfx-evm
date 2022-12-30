@@ -39,17 +39,16 @@ impl MallocSizeOf for Block {
 }
 
 impl Block {
-    pub fn new(
-        block_header: BlockHeader, transactions: Vec<Arc<SignedTransaction>>,
-    ) -> Self {
+    pub fn new(block_header: BlockHeader, transactions: Vec<Arc<SignedTransaction>>) -> Self {
         Self::new_with_rlp_size(block_header, transactions, None, None)
     }
 
     pub fn new_with_rlp_size(
-        block_header: BlockHeader, transactions: Vec<Arc<SignedTransaction>>,
-        rlp_size: Option<usize>, rlp_size_with_public: Option<usize>,
-    ) -> Self
-    {
+        block_header: BlockHeader,
+        transactions: Vec<Arc<SignedTransaction>>,
+        rlp_size: Option<usize>,
+        rlp_size_with_public: Option<usize>,
+    ) -> Self {
         let approximated_rlp_size = match rlp_size {
             Some(size) => size,
             None => transactions
@@ -72,10 +71,14 @@ impl Block {
         }
     }
 
-    pub fn hash(&self) -> H256 { self.block_header.hash() }
+    pub fn hash(&self) -> H256 {
+        self.block_header.hash()
+    }
 
     /// Approximated rlp size of the block.
-    pub fn approximated_rlp_size(&self) -> usize { self.approximated_rlp_size }
+    pub fn approximated_rlp_size(&self) -> usize {
+        self.approximated_rlp_size
+    }
 
     /// Approximated rlp size of block with transaction public key.
     pub fn approximated_rlp_size_with_public(&self) -> usize {
@@ -120,16 +123,11 @@ impl Block {
     /// adversaries to make tx shortId collision
     pub fn to_compact(&self) -> CompactBlock {
         let nonce: u64 = rand::thread_rng().gen();
-        let (k0, k1) =
-            CompactBlock::get_shortid_key(&self.block_header, &nonce);
+        let (k0, k1) = CompactBlock::get_shortid_key(&self.block_header, &nonce);
         CompactBlock {
             block_header: self.block_header.clone(),
             nonce,
-            tx_short_ids: CompactBlock::create_shortids(
-                &self.transactions,
-                k0,
-                k1,
-            ),
+            tx_short_ids: CompactBlock::create_shortids(&self.transactions, k0, k1),
             // reconstructed_txns constructed here will not be used
             reconstructed_txns: Vec::new(),
         }
@@ -263,7 +261,9 @@ impl CompactBlock {
         self.tx_short_ids.len() / CompactBlock::SHORT_ID_SIZE_IN_BYTES
     }
 
-    pub fn hash(&self) -> H256 { self.block_header.hash() }
+    pub fn hash(&self) -> H256 {
+        self.block_header.hash()
+    }
 
     pub fn get_shortid_key(header: &BlockHeader, nonce: &u64) -> (u64, u64) {
         let mut stream = RlpStream::new();
@@ -277,7 +277,9 @@ impl CompactBlock {
 
     /// Compute Tx ShortId from hash
     pub fn create_shortids(
-        transactions: &Vec<Arc<SignedTransaction>>, k0: u64, k1: u64,
+        transactions: &Vec<Arc<SignedTransaction>>,
+        k0: u64,
+        k1: u64,
     ) -> Vec<u8> {
         let mut short_ids: Vec<u8> = vec![];
 
@@ -295,18 +297,15 @@ impl CompactBlock {
         short_ids
     }
 
-    pub fn to_u16(v1: u8, v2: u8) -> u16 { ((v1 as u16) << 8) + v2 as u16 }
-
-    pub fn to_u32(v1: u8, v2: u8, v3: u8, v4: u8) -> u32 {
-        ((v1 as u32) << 24)
-            + ((v2 as u32) << 16)
-            + ((v3 as u32) << 8)
-            + v4 as u32
+    pub fn to_u16(v1: u8, v2: u8) -> u16 {
+        ((v1 as u16) << 8) + v2 as u16
     }
 
-    pub fn get_random_bytes(
-        transaction_id: &H256, key1: u64, key2: u64,
-    ) -> u16 {
+    pub fn to_u32(v1: u8, v2: u8, v3: u8, v4: u8) -> u32 {
+        ((v1 as u32) << 24) + ((v2 as u32) << 16) + ((v3 as u32) << 8) + v4 as u32
+    }
+
+    pub fn get_random_bytes(transaction_id: &H256, key1: u64, key2: u64) -> u16 {
         let mut hasher = SipHasher24::new_with_keys(key1, key2);
         hasher.write(transaction_id.as_ref());
         (hasher.finish() & 0xffff) as u16
@@ -316,9 +315,7 @@ impl CompactBlock {
         let mut random_bytes_vector: Vec<u16> = Vec::new();
         let mut fixed_bytes_vector: Vec<u32> = Vec::new();
 
-        for i in (0..self.tx_short_ids.len())
-            .step_by(CompactBlock::SHORT_ID_SIZE_IN_BYTES)
-        {
+        for i in (0..self.tx_short_ids.len()).step_by(CompactBlock::SHORT_ID_SIZE_IN_BYTES) {
             random_bytes_vector.push(CompactBlock::to_u16(
                 self.tx_short_ids[i],
                 self.tx_short_ids[i + 1],

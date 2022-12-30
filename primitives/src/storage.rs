@@ -16,7 +16,9 @@ pub enum MptValue<ValueType> {
 
 impl<ValueType: Serialize> Serialize for MptValue<ValueType> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer {
+    where
+        S: Serializer,
+    {
         match self {
             MptValue::None => serializer.serialize_none(),
             MptValue::Some(h) => serializer.serialize_some(h),
@@ -48,7 +50,9 @@ impl<ValueType: Default> MptValue<ValueType> {
         }
     }
 
-    pub fn take(&mut self) -> Self { std::mem::replace(self, MptValue::None) }
+    pub fn take(&mut self) -> Self {
+        std::mem::replace(self, MptValue::None)
+    }
 
     pub fn unwrap(self) -> ValueType {
         match self {
@@ -189,8 +193,7 @@ mod tests {
         // list of length 34 (type + 33 for serialized hash): rlp(2) + rlp(hash)
         assert_eq!(
             rlp::encode(&val),
-            [&[0xc0 + 34, 0x02][..], &rlp::encode(&MERKLE_NULL_NODE)[..]]
-                .concat()
+            [&[0xc0 + 34, 0x02][..], &rlp::encode(&MERKLE_NULL_NODE)[..]].concat()
         );
         assert_eq!(val, rlp::decode(&rlp::encode(&val)).unwrap());
     }

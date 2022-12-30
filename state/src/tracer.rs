@@ -9,9 +9,7 @@ use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 /// This trait is used by executive to build traces.
 pub trait StateTracer: Send {
     /// Prepares internal transfer action
-    fn trace_internal_transfer(
-        &mut self, from: AddressPocket, to: AddressPocket, value: U256,
-    );
+    fn trace_internal_transfer(&mut self, from: AddressPocket, to: AddressPocket, value: U256);
 
     /// Make a checkpoint for validity mark
     fn checkpoint(&mut self);
@@ -24,10 +22,7 @@ pub trait StateTracer: Send {
 }
 
 impl StateTracer for () {
-    fn trace_internal_transfer(
-        &mut self, _: AddressPocket, _: AddressPocket, _: U256,
-    ) {
-    }
+    fn trace_internal_transfer(&mut self, _: AddressPocket, _: AddressPocket, _: U256) {}
 
     fn checkpoint(&mut self) {}
 
@@ -37,19 +32,24 @@ impl StateTracer for () {
 }
 
 impl<T> StateTracer for &mut T
-where T: StateTracer
+where
+    T: StateTracer,
 {
-    fn trace_internal_transfer(
-        &mut self, from: AddressPocket, to: AddressPocket, value: U256,
-    ) {
+    fn trace_internal_transfer(&mut self, from: AddressPocket, to: AddressPocket, value: U256) {
         (*self).trace_internal_transfer(from, to, value);
     }
 
-    fn checkpoint(&mut self) { (*self).checkpoint(); }
+    fn checkpoint(&mut self) {
+        (*self).checkpoint();
+    }
 
-    fn discard_checkpoint(&mut self) { (*self).discard_checkpoint(); }
+    fn discard_checkpoint(&mut self) {
+        (*self).discard_checkpoint();
+    }
 
-    fn revert_to_checkpoint(&mut self) { (*self).revert_to_checkpoint(); }
+    fn revert_to_checkpoint(&mut self) {
+        (*self).revert_to_checkpoint();
+    }
 }
 
 impl<S, T> StateTracer for (&mut S, &mut T)
@@ -57,9 +57,7 @@ where
     S: StateTracer,
     T: StateTracer,
 {
-    fn trace_internal_transfer(
-        &mut self, from: AddressPocket, to: AddressPocket, value: U256,
-    ) {
+    fn trace_internal_transfer(&mut self, from: AddressPocket, to: AddressPocket, value: U256) {
         self.0.trace_internal_transfer(from, to, value);
         self.1.trace_internal_transfer(from, to, value);
     }
@@ -184,9 +182,7 @@ impl Decodable for AddressPocket {
             7 => rlp
                 .val_at(1)
                 .map(|addr: Address| Balance(addr.with_evm_space())),
-            _ => {
-                Err(DecoderError::Custom("Invalid internal transfer address."))
-            }
+            _ => Err(DecoderError::Custom("Invalid internal transfer address.")),
         }
     }
 }

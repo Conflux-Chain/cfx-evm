@@ -29,9 +29,7 @@ pub fn public_is_valid(public: &Public) -> bool {
 }
 
 /// Inplace multiply public key by secret key (EC point * scalar)
-pub fn public_mul_secret(
-    public: &mut Public, secret: &Secret,
-) -> Result<(), Error> {
+pub fn public_mul_secret(public: &mut Public, secret: &Secret) -> Result<(), Error> {
     let key_secret = secret.to_secp256k1_secret()?;
     let mut key_public = to_secp256k1_public(public)?;
     key_public.mul_assign(&SECP256K1, &key_secret)?;
@@ -82,7 +80,9 @@ pub fn generation_point() -> Public {
 }
 
 /// Return secp256k1 elliptic curve order
-pub fn curve_order() -> U256 { H256::from_slice(&CURVE_ORDER).into_uint() }
+pub fn curve_order() -> U256 {
+    H256::from_slice(&CURVE_ORDER).into_uint()
+}
 
 fn to_secp256k1_public(public: &Public) -> Result<key::PublicKey, Error> {
     let public_data = {

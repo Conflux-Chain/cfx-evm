@@ -40,7 +40,9 @@ impl ABIVariable for U256 {
         LinkedBytes::from_bytes(answer)
     }
 
-    fn to_packed_abi(&self) -> LinkedBytes { self.to_abi() }
+    fn to_packed_abi(&self) -> LinkedBytes {
+        self.to_abi()
+    }
 }
 
 impl ABIVariable for H256 {
@@ -51,9 +53,13 @@ impl ABIVariable for H256 {
         Ok(H256::from(<[u8; 32]>::from_abi(data)?))
     }
 
-    fn to_abi(&self) -> LinkedBytes { self.0.to_abi() }
+    fn to_abi(&self) -> LinkedBytes {
+        self.0.to_abi()
+    }
 
-    fn to_packed_abi(&self) -> LinkedBytes { self.0.to_packed_abi() }
+    fn to_packed_abi(&self) -> LinkedBytes {
+        self.0.to_packed_abi()
+    }
 }
 
 impl ABIVariable for bool {
@@ -116,7 +122,11 @@ pub struct U8(u8);
 impl U8 {
     const BITS: usize = 8;
 
-    fn to_be_bytes(self) -> [u8; 1] { [self.0] }
+    fn to_be_bytes(self) -> [u8; 1] {
+        [self.0]
+    }
 
-    fn from_be_bytes(input: [u8; 1]) -> Self { U8(input[0]) }
+    fn from_be_bytes(input: [u8; 1]) -> Self {
+        U8(input[0])
+    }
 }

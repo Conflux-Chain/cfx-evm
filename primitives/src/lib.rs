@@ -33,8 +33,7 @@ pub mod transaction_index;
 
 pub use crate::{
     account::{
-        Account, CodeInfo, DepositInfo, DepositList, SponsorInfo,
-        VoteStakeInfo, VoteStakeList,
+        Account, CodeInfo, DepositInfo, DepositList, SponsorInfo, VoteStakeInfo, VoteStakeList,
     },
     block::{Block, BlockNumber},
     block_header::{BlockHeader, BlockHeaderBuilder},
@@ -44,14 +43,11 @@ pub use crate::{
     receipt::{BlockReceipts, Receipt, TransactionOutcome},
     state_root::*,
     static_bool::StaticBool,
-    storage::{
-        MptValue, NodeMerkleTriplet, StorageLayout, StorageRoot, StorageValue,
-    },
+    storage::{MptValue, NodeMerkleTriplet, StorageLayout, StorageRoot, StorageValue},
     storage_key::*,
     transaction::{
-        Action, Eip155Transaction, NativeTransaction, SignedTransaction,
-        Transaction, TransactionWithSignature,
-        TransactionWithSignatureSerializePart, TxPropagateId,
+        Action, Eip155Transaction, NativeTransaction, SignedTransaction, Transaction,
+        TransactionWithSignature, TransactionWithSignatureSerializePart, TxPropagateId,
     },
     transaction_index::TransactionIndex,
 };

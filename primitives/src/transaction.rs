@@ -4,12 +4,9 @@
 
 use crate::{bytes::Bytes, hash::keccak};
 use cfx_types::{
-    Address, AddressSpaceUtil, AddressWithSpace, BigEndianHash, Space, H160,
-    H256, U256,
+    Address, AddressSpaceUtil, AddressWithSpace, BigEndianHash, Space, H160, H256, U256,
 };
-use keylib::{
-    self, public_to_address, recover, verify_public, Public, Secret, Signature,
-};
+use keylib::{self, public_to_address, recover, verify_public, Public, Secret, Signature};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rlp::{self, Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use rlp_derive::{RlpDecodable, RlpEncodable};
@@ -176,7 +173,9 @@ impl fmt::Display for TransactionError {
 }
 
 impl error::Error for TransactionError {
-    fn description(&self) -> &str { "Transaction error" }
+    fn description(&self) -> &str {
+        "Transaction error"
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -189,7 +188,9 @@ pub enum Action {
 }
 
 impl Default for Action {
-    fn default() -> Action { Action::Create }
+    fn default() -> Action {
+        Action::Create
+    }
 }
 
 impl Decodable for Action {
@@ -212,15 +213,7 @@ impl Encodable for Action {
 }
 
 #[derive(
-    Default,
-    Debug,
-    Clone,
-    Eq,
-    PartialEq,
-    RlpEncodable,
-    RlpDecodable,
-    Serialize,
-    Deserialize,
+    Default, Debug, Clone, Eq, PartialEq, RlpEncodable, RlpDecodable, Serialize, Deserialize,
 )]
 pub struct NativeTransaction {
     /// Nonce.
@@ -305,9 +298,7 @@ impl Eip155Transaction {
     // The signature is part of the hash input. This implementation
     // ensures that phantom transactions whose fields are identical
     // will have different hashes.
-    pub fn fake_sign_phantom(
-        self, from: AddressWithSpace,
-    ) -> SignedTransaction {
+    pub fn fake_sign_phantom(self, from: AddressWithSpace) -> SignedTransaction {
         SignedTransaction {
             transaction: TransactionWithSignature {
                 transaction: TransactionWithSignatureSerializePart {
@@ -422,15 +413,21 @@ pub enum Transaction {
 }
 
 impl Default for Transaction {
-    fn default() -> Self { Transaction::Native(Default::default()) }
+    fn default() -> Self {
+        Transaction::Native(Default::default())
+    }
 }
 
 impl From<NativeTransaction> for Transaction {
-    fn from(tx: NativeTransaction) -> Self { Self::Native(tx) }
+    fn from(tx: NativeTransaction) -> Self {
+        Self::Native(tx)
+    }
 }
 
 impl From<Eip155Transaction> for Transaction {
-    fn from(tx: Eip155Transaction) -> Self { Self::Ethereum(tx) }
+    fn from(tx: Eip155Transaction) -> Self {
+        Self::Ethereum(tx)
+    }
 }
 
 macro_rules! access_common_ref {
@@ -626,17 +623,12 @@ impl Decodable for TransactionWithSignatureSerializePart {
                 let s: U256 = rlp.val_at(8)?;
 
                 let v = eip155_signature::extract_standard_v(legacy_v);
-                let chain_id =
-                    match eip155_signature::extract_chain_id_from_legacy_v(
-                        legacy_v,
-                    ) {
-                        Some(chain_id) if chain_id > (u32::MAX as u64) => {
-                            return Err(DecoderError::Custom(
-                                "Does not support chain_id >= 2^32",
-                            ));
-                        }
-                        chain_id => chain_id.map(|x| x as u32),
-                    };
+                let chain_id = match eip155_signature::extract_chain_id_from_legacy_v(legacy_v) {
+                    Some(chain_id) if chain_id > (u32::MAX as u64) => {
+                        return Err(DecoderError::Custom("Does not support chain_id >= 2^32"));
+                    }
+                    chain_id => chain_id.map(|x| x as u32),
+                };
 
                 Ok(TransactionWithSignatureSerializePart {
                     unsigned: Transaction::Ethereum(Eip155Transaction {
@@ -661,11 +653,15 @@ impl Decodable for TransactionWithSignatureSerializePart {
 impl Deref for TransactionWithSignatureSerializePart {
     type Target = Transaction;
 
-    fn deref(&self) -> &Self::Target { &self.unsigned }
+    fn deref(&self) -> &Self::Target {
+        &self.unsigned
+    }
 }
 
 impl DerefMut for TransactionWithSignatureSerializePart {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.unsigned }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.unsigned
+    }
 }
 
 /// Signed transaction information without verified signature.
@@ -684,11 +680,15 @@ pub struct TransactionWithSignature {
 impl Deref for TransactionWithSignature {
     type Target = TransactionWithSignatureSerializePart;
 
-    fn deref(&self) -> &Self::Target { &self.transaction }
+    fn deref(&self) -> &Self::Target {
+        &self.transaction
+    }
 }
 
 impl DerefMut for TransactionWithSignature {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.transaction }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.transaction
+    }
 }
 
 impl Decodable for TransactionWithSignature {
@@ -736,7 +736,9 @@ impl TransactionWithSignature {
     }
 
     /// Checks whether signature is empty.
-    pub fn is_unsigned(&self) -> bool { self.r.is_zero() && self.s.is_zero() }
+    pub fn is_unsigned(&self) -> bool {
+        self.r.is_zero() && self.s.is_zero()
+    }
 
     /// Construct a signature object from the sig.
     pub fn signature(&self) -> Signature {
@@ -754,7 +756,9 @@ impl TransactionWithSignature {
         }
     }
 
-    pub fn hash(&self) -> H256 { self.hash }
+    pub fn hash(&self) -> H256 {
+        self.hash
+    }
 
     /// Recovers the public key of the sender.
     pub fn recover_public(&self) -> Result<Public, keylib::Error> {
@@ -802,15 +806,21 @@ impl Decodable for SignedTransaction {
 impl Deref for SignedTransaction {
     type Target = TransactionWithSignature;
 
-    fn deref(&self) -> &Self::Target { &self.transaction }
+    fn deref(&self) -> &Self::Target {
+        &self.transaction
+    }
 }
 
 impl DerefMut for SignedTransaction {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.transaction }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.transaction
+    }
 }
 
 impl From<SignedTransaction> for TransactionWithSignature {
-    fn from(tx: SignedTransaction) -> Self { tx.transaction }
+    fn from(tx: SignedTransaction) -> Self {
+        tx.transaction
+    }
 }
 
 impl SignedTransaction {
@@ -823,10 +833,7 @@ impl SignedTransaction {
                 public: None,
             }
         } else {
-            let sender = public_to_address(
-                &public,
-                transaction.space() == Space::Native,
-            );
+            let sender = public_to_address(&public, transaction.space() == Space::Native);
             SignedTransaction {
                 transaction,
                 sender,
@@ -854,26 +861,42 @@ impl SignedTransaction {
         self.sender.with_space(self.space())
     }
 
-    pub fn nonce(&self) -> &U256 { self.transaction.nonce() }
+    pub fn nonce(&self) -> &U256 {
+        self.transaction.nonce()
+    }
 
     /// Checks if signature is empty.
-    pub fn is_unsigned(&self) -> bool { self.transaction.is_unsigned() }
+    pub fn is_unsigned(&self) -> bool {
+        self.transaction.is_unsigned()
+    }
 
-    pub fn hash(&self) -> H256 { self.transaction.hash() }
+    pub fn hash(&self) -> H256 {
+        self.transaction.hash()
+    }
 
-    pub fn gas(&self) -> &U256 { &self.transaction.gas() }
+    pub fn gas(&self) -> &U256 {
+        &self.transaction.gas()
+    }
 
-    pub fn gas_price(&self) -> &U256 { &self.transaction.gas_price() }
+    pub fn gas_price(&self) -> &U256 {
+        &self.transaction.gas_price()
+    }
 
-    pub fn gas_limit(&self) -> &U256 { &self.transaction.gas() }
+    pub fn gas_limit(&self) -> &U256 {
+        &self.transaction.gas()
+    }
 
     pub fn storage_limit(&self) -> Option<u64> {
         self.transaction.storage_limit()
     }
 
-    pub fn rlp_size(&self) -> usize { self.transaction.rlp_size() }
+    pub fn rlp_size(&self) -> usize {
+        self.transaction.rlp_size()
+    }
 
-    pub fn public(&self) -> &Option<Public> { &self.public }
+    pub fn public(&self) -> &Option<Public> {
+        &self.public
+    }
 
     pub fn verify_public(&self, skip: bool) -> Result<bool, keylib::Error> {
         if self.public.is_none() {

@@ -26,7 +26,9 @@ use super::{Address, Brain, Generator};
 ///
 /// Returns `None` if phrase couldn't be found.
 pub fn brain_recover(
-    address: &Address, known_phrase: &str, expected_words: usize,
+    address: &Address,
+    known_phrase: &str,
+    expected_words: usize,
 ) -> Option<String> {
     let it = PhrasesIterator::from_known_phrase(known_phrase, expected_words);
     for phrase in it {
@@ -62,24 +64,26 @@ pub struct PhrasesIterator {
 }
 
 impl PhrasesIterator {
-    pub fn from_known_phrase(
-        known_phrase: &str, expected_words: usize,
-    ) -> Self {
+    pub fn from_known_phrase(known_phrase: &str, expected_words: usize) -> Self {
         let known_words = parity_wordlist::WORDS
             .iter()
             .cloned()
             .collect::<HashSet<_>>();
-        let mut words = known_phrase.split(' ')
-			.map(|word| match known_words.get(word) {
-				None => {
-					info!("Invalid word '{}', looking for potential substitutions.", word);
-					let substitutions = generate_substitutions(word);
-					info!("Closest words: {:?}", &substitutions[..10]);
-					substitutions
-				},
-				Some(word) => vec![*word],
-			})
-		.collect::<Vec<_>>();
+        let mut words = known_phrase
+            .split(' ')
+            .map(|word| match known_words.get(word) {
+                None => {
+                    info!(
+                        "Invalid word '{}', looking for potential substitutions.",
+                        word
+                    );
+                    let substitutions = generate_substitutions(word);
+                    info!("Closest words: {:?}", &substitutions[..10]);
+                    substitutions
+                }
+                Some(word) => vec![*word],
+            })
+            .collect::<Vec<_>>();
 
         // add missing words
         if words.len() < expected_words {
@@ -95,8 +99,7 @@ impl PhrasesIterator {
     }
 
     pub fn new(words: Vec<Vec<&'static str>>) -> Self {
-        let combinations =
-            words.iter().fold(1u64, |acc, x| acc * x.len() as u64);
+        let combinations = words.iter().fold(1u64, |acc, x| acc * x.len() as u64);
         let indexes = words.iter().map(|_| 0).collect();
         info!("Starting to test {} possible combinations.", combinations);
 
@@ -108,7 +111,9 @@ impl PhrasesIterator {
         }
     }
 
-    pub fn combinations(&self) -> u64 { self.combinations }
+    pub fn combinations(&self) -> u64 {
+        self.combinations
+    }
 
     fn current(&self) -> String {
         let mut s = self.words[0][self.indexes[0]].to_owned();
@@ -155,11 +160,8 @@ mod tests {
 
     #[test]
     fn should_generate_possible_combinations() {
-        let mut it = PhrasesIterator::new(vec![
-            vec!["1", "2", "3"],
-            vec!["test"],
-            vec!["a", "b", "c"],
-        ]);
+        let mut it =
+            PhrasesIterator::new(vec![vec!["1", "2", "3"], vec!["test"], vec!["a", "b", "c"]]);
 
         assert_eq!(it.combinations(), 9);
         assert_eq!(it.next(), Some("1 test a".to_owned()));

@@ -33,24 +33,31 @@ impl IsDefault for CodeInfo {
 }
 
 impl IsDefault for DepositList {
-    fn is_default(&self) -> bool { self.0.is_empty() }
+    fn is_default(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl IsDefault for VoteStakeList {
-    fn is_default(&self) -> bool { self.0.is_empty() }
+    fn is_default(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl IsDefault for StorageValue {
     fn is_default(&self) -> bool {
-        self.value == U256::zero()
-            && (self.owner == Some(Address::default()) || self.owner == None)
+        self.value == U256::zero() && (self.owner == Some(Address::default()) || self.owner == None)
     }
 }
 
 impl IsDefault for U256 {
-    fn is_default(&self) -> bool { self.is_zero() }
+    fn is_default(&self) -> bool {
+        self.is_zero()
+    }
 }
 
 impl IsDefault for bool {
-    fn is_default(&self) -> bool { !self }
+    fn is_default(&self) -> bool {
+        !self
+    }
 }

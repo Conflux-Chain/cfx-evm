@@ -160,9 +160,7 @@ impl fmt::Display for Error {
             BadJumpDestination { destination } => {
                 write!(f, "Bad jump destination {:x}", destination)
             }
-            BadInstruction { instruction } => {
-                write!(f, "Bad instruction {:x}", instruction)
-            }
+            BadInstruction { instruction } => write!(f, "Bad instruction {:x}", instruction),
             StackUnderflow {
                 instruction,
                 wanted,
@@ -176,9 +174,7 @@ impl fmt::Display for Error {
             SubStackUnderflow { wanted, on_stack } => {
                 write!(f, "Subroutine stack underflow {}/{}", wanted, on_stack)
             }
-            InvalidSubEntry => {
-                write!(f, "Invalid Subroutine Entry via BEGINSUB")
-            }
+            InvalidSubEntry => write!(f, "Invalid Subroutine Entry via BEGINSUB"),
             OutOfSubStack { wanted, limit } => {
                 write!(f, "Out of subroutine stack {}/{}", wanted, limit)
             }
@@ -187,15 +183,9 @@ impl fmt::Display for Error {
             }
             ExceedStorageLimit => write!(f, "Exceed storage limit"),
             BuiltIn(name) => write!(f, "Built-in failed: {}", name),
-            InternalContract(ref name) => {
-                write!(f, "InternalContract failed: {}", name)
-            }
-            StateDbError(ref msg) => {
-                write!(f, "Irrecoverable state db error: {}", msg.0)
-            }
-            MutableCallInStaticContext => {
-                write!(f, "Mutable call in static context")
-            }
+            InternalContract(ref name) => write!(f, "InternalContract failed: {}", name),
+            StateDbError(ref msg) => write!(f, "Irrecoverable state db error: {}", msg.0),
+            MutableCallInStaticContext => write!(f, "Mutable call in static context"),
             Wasm(ref msg) => write!(f, "Internal error: {}", msg),
             OutOfBounds => write!(f, "Out of bounds"),
             Reverted => write!(f, "Reverted by bytecode"),

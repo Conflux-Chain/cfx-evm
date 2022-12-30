@@ -81,9 +81,7 @@ pub mod ecies {
     /// the plaintext and authenticated data.
     ///
     /// Authenticated data may be empty.
-    pub fn encrypt(
-        public: &Public, auth_data: &[u8], plain: &[u8],
-    ) -> Result<Vec<u8>, Error> {
+    pub fn encrypt(public: &Public, auth_data: &[u8], plain: &[u8]) -> Result<Vec<u8>, Error> {
         let r = Random.generate()?;
         let z = ecdh::agree(r.secret(), public)?;
         let mut key = [0u8; 32];
@@ -117,9 +115,7 @@ pub mod ecies {
 
     /// Decrypt a message with a secret key, checking HMAC for ciphertext
     /// and authenticated data validity.
-    pub fn decrypt(
-        secret: &Secret, auth_data: &[u8], encrypted: &[u8],
-    ) -> Result<Vec<u8>, Error> {
+    pub fn decrypt(secret: &Secret, auth_data: &[u8], encrypted: &[u8]) -> Result<Vec<u8>, Error> {
         let meta_len = 1 + 64 + 16 + 32;
         if encrypted.len() < meta_len || encrypted[0] < 2 || encrypted[0] > 4 {
             return Err(Error::InvalidMessage); //invalid message: publickey
@@ -198,8 +194,7 @@ mod tests {
         assert_eq!(encrypted[0], 0x04);
 
         assert!(ecies::decrypt(kp.secret(), wrong_shared, &encrypted).is_err());
-        let decrypted =
-            ecies::decrypt(kp.secret(), shared, &encrypted).unwrap();
+        let decrypted = ecies::decrypt(kp.secret(), shared, &encrypted).unwrap();
         assert_eq!(decrypted[..message.len()], message[..]);
     }
 }

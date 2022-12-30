@@ -19,8 +19,7 @@ use public_to_address;
 use rustc_hex::{FromHex, ToHex};
 use secp256k1::{
     key::{PublicKey, SecretKey},
-    Error as SecpError, Message as SecpMessage, RecoverableSignature,
-    RecoveryId,
+    Error as SecpError, Message as SecpMessage, RecoverableSignature, RecoveryId,
 };
 use std::{
     cmp::PartialEq,
@@ -42,13 +41,19 @@ pub struct Signature([u8; 65]);
 
 impl Signature {
     /// Get a slice into the 'r' portion of the data.
-    pub fn r(&self) -> &[u8] { &self.0[0..32] }
+    pub fn r(&self) -> &[u8] {
+        &self.0[0..32]
+    }
 
     /// Get a slice into the 's' portion of the data.
-    pub fn s(&self) -> &[u8] { &self.0[32..64] }
+    pub fn s(&self) -> &[u8] {
+        &self.0[32..64]
+    }
 
     /// Get the recovery byte.
-    pub fn v(&self) -> u8 { self.0[64] }
+    pub fn v(&self) -> u8 {
+        self.0[64]
+    }
 
     /// Encode the signature into RSV array (V altered to be in "Electrum"
     /// notation).
@@ -84,9 +89,9 @@ impl Signature {
     pub fn is_low_s(&self) -> bool {
         // "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0"
         const MASK: H256 = H256([
-            0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x5D, 0x57, 0x6E, 0x73, 0x57, 0xA4,
-            0x50, 0x1D, 0xDF, 0xE9, 0x2F, 0x46, 0x68, 0x1B, 0x20, 0xA0,
+            0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0x5D, 0x57, 0x6E, 0x73, 0x57, 0xA4, 0x50, 0x1D, 0xDF, 0xE9, 0x2F, 0x46,
+            0x68, 0x1B, 0x20, 0xA0,
         ]);
         H256::from_slice(self.s()) <= MASK
     }
@@ -95,14 +100,14 @@ impl Signature {
     pub fn is_valid(&self) -> bool {
         // "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
         const MASK: H256 = H256([
-            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-            0xff, 0xff, 0xff, 0xff, 0xfe, 0xba, 0xae, 0xdc, 0xe6, 0xaf, 0x48,
-            0xa0, 0x3b, 0xbf, 0xd2, 0x5e, 0x8c, 0xd0, 0x36, 0x41, 0x41,
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xfe, 0xba, 0xae, 0xdc, 0xe6, 0xaf, 0x48, 0xa0, 0x3b, 0xbf, 0xd2, 0x5e, 0x8c,
+            0xd0, 0x36, 0x41, 0x41,
         ]);
         const ONE: H256 = H256([
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01,
         ]);
         let r = H256::from_slice(self.r());
         let s = H256::from_slice(self.s());
@@ -113,7 +118,9 @@ impl Signature {
 // manual implementation large arrays don't have trait impls by default.
 // remove when integer generics exist
 impl PartialEq for Signature {
-    fn eq(&self, other: &Self) -> bool { &self.0[..] == &other.0[..] }
+    fn eq(&self, other: &Self) -> bool {
+        &self.0[..] == &other.0[..]
+    }
 }
 
 // manual implementation required in Rust 1.13+, see
@@ -153,48 +160,65 @@ impl FromStr for Signature {
 }
 
 impl Default for Signature {
-    fn default() -> Self { Signature([0; 65]) }
+    fn default() -> Self {
+        Signature([0; 65])
+    }
 }
 
 impl Hash for Signature {
-    fn hash<H: Hasher>(&self, state: &mut H) { H520::from(self.0).hash(state); }
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        H520::from(self.0).hash(state);
+    }
 }
 
 impl Clone for Signature {
-    fn clone(&self) -> Self { Signature(self.0) }
+    fn clone(&self) -> Self {
+        Signature(self.0)
+    }
 }
 
 impl From<[u8; 65]> for Signature {
-    fn from(s: [u8; 65]) -> Self { Signature(s) }
+    fn from(s: [u8; 65]) -> Self {
+        Signature(s)
+    }
 }
 
 impl Into<[u8; 65]> for Signature {
-    fn into(self) -> [u8; 65] { self.0 }
+    fn into(self) -> [u8; 65] {
+        self.0
+    }
 }
 
 impl From<Signature> for H520 {
-    fn from(s: Signature) -> Self { H520::from(s.0) }
+    fn from(s: Signature) -> Self {
+        H520::from(s.0)
+    }
 }
 
 impl From<H520> for Signature {
-    fn from(bytes: H520) -> Self { Signature(bytes.into()) }
+    fn from(bytes: H520) -> Self {
+        Signature(bytes.into())
+    }
 }
 
 impl Deref for Signature {
     type Target = [u8; 65];
 
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl DerefMut for Signature {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 pub fn sign(secret: &Secret, message: &Message) -> Result<Signature, Error> {
     let context = &SECP256K1;
     let sec = SecretKey::from_slice(context, secret.as_ref())?;
-    let s = context
-        .sign_recoverable(&SecpMessage::from_slice(&message[..])?, &sec)?;
+    let s = context.sign_recoverable(&SecpMessage::from_slice(&message[..])?, &sec)?;
     let (rec_id, data) = s.serialize_compact(context);
     let mut data_arr = [0; 65];
 
@@ -205,7 +229,9 @@ pub fn sign(secret: &Secret, message: &Message) -> Result<Signature, Error> {
 }
 
 pub fn verify_public(
-    public: &Public, signature: &Signature, message: &Message,
+    public: &Public,
+    signature: &Signature,
+    message: &Message,
 ) -> Result<bool, Error> {
     let context = &SECP256K1;
     let rsig = RecoverableSignature::from_compact(
@@ -230,24 +256,23 @@ pub fn verify_public(
 }
 
 pub fn verify_address(
-    address: &Address, signature: &Signature, message: &Message,
+    address: &Address,
+    signature: &Signature,
+    message: &Message,
 ) -> Result<bool, Error> {
     let public = recover(signature, message)?;
     let recovered_address = public_to_address(&public, true);
     Ok(address == &recovered_address)
 }
 
-pub fn recover(
-    signature: &Signature, message: &Message,
-) -> Result<Public, Error> {
+pub fn recover(signature: &Signature, message: &Message) -> Result<Public, Error> {
     let context = &SECP256K1;
     let rsig = RecoverableSignature::from_compact(
         context,
         &signature[0..64],
         RecoveryId::from_i32(signature[64] as i32)?,
     )?;
-    let pubkey =
-        context.recover(&SecpMessage::from_slice(&message[..])?, &rsig)?;
+    let pubkey = context.recover(&SecpMessage::from_slice(&message[..])?, &rsig)?;
     let serialized = pubkey.serialize_vec(context, false);
 
     let mut public = Public::default();
@@ -309,8 +334,6 @@ mod tests {
         let keypair = Random.generate().unwrap();
         let message = Message::default();
         let signature = sign(keypair.secret(), &message).unwrap();
-        assert!(
-            verify_address(&keypair.address(), &signature, &message).unwrap()
-        );
+        assert!(verify_address(&keypair.address(), &signature, &message).unwrap());
     }
 }

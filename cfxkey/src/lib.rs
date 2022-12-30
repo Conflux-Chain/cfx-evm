@@ -56,10 +56,7 @@ pub use self::{
     brain::Brain,
     brain_prefix::BrainPrefix,
     error::Error,
-    extended::{
-        Derivation, DerivationError, ExtendedKeyPair, ExtendedPublic,
-        ExtendedSecret,
-    },
+    extended::{Derivation, DerivationError, ExtendedKeyPair, ExtendedPublic, ExtendedSecret},
     keypair::{is_compatible_public, public_to_address, KeyPair},
     math::public_is_valid,
     parity_wordlist::Error as WordlistError,
@@ -76,8 +73,7 @@ pub use cfx_types::{Address, Public};
 pub type Message = H256;
 
 lazy_static! {
-    pub static ref SECP256K1: secp256k1::Secp256k1 =
-        secp256k1::Secp256k1::new();
+    pub static ref SECP256K1: secp256k1::Secp256k1 = secp256k1::Secp256k1::new();
 }
 
 /// Uninstantiatable error type for infallible generators.

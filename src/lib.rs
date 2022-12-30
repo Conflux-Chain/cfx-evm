@@ -8,12 +8,16 @@ extern crate log;
 #[macro_use]
 extern crate error_chain;
 
-pub mod builtin;
-pub mod evm;
-pub mod executive;
+mod builtin;
+mod evm;
+mod executive;
 pub mod machine;
 pub mod observer;
-pub mod spec;
-pub mod state;
+mod spec;
+mod state;
 pub mod vm;
-pub mod vm_factory;
+mod vm_factory;
+
+pub use executive::Executive;
+pub use state::State;
+pub use vm::Env;

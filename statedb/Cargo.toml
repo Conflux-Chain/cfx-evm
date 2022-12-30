@@ -7,9 +7,9 @@ version = "1.0.0"
 edition = "2018"
 
 [dependencies]
-cfx-internal-common = { git = "https://github.com/Conflux-Chain/conflux-rust", rev="8ac4b7f"}
+cfx-internal-common = { path = "../internal-common" }
 cfx-parameters = { path = "../parameters" }
-cfx-storage = { git = "https://github.com/Conflux-Chain/conflux-rust", rev="8ac4b7f"}
+cfx-storage = { path = "../storage"}
 cfx-types = { path = "../cfx_types" }
 error-chain = { version = "0.12", default-features = false }
 hashbrown = "0.7.1"

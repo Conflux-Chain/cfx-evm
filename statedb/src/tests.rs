@@ -2,11 +2,9 @@
 // Conflux is free software and distributed under GNU General Public License.
 // See http://www.gnu.org/licenses/
 
-use super::StateDbGeneric;
+use super::StateDb;
 use cfx_internal_common::StateRootWithAuxInfo;
-use cfx_storage::{
-    utils::access_mode, ErrorKind, MptKeyValue, Result, StorageStateTrait,
-};
+use cfx_storage::{utils::access_mode, ErrorKind, MptKeyValue, Result, StorageStateTrait};
 use parking_lot::Mutex;
 use primitives::{EpochId, StorageKey, StorageKeyWithSpace, MERKLE_NULL_NODE};
 use std::collections::HashMap;
@@ -39,10 +37,14 @@ impl MockStorage {
     }
 
     #[allow(unused)]
-    pub fn get_num_reads(&self) -> u64 { *self.num_reads.lock() }
+    pub fn get_num_reads(&self) -> u64 {
+        *self.num_reads.lock()
+    }
 
     #[allow(unused)]
-    pub fn get_num_writes(&self) -> u64 { self.num_writes }
+    pub fn get_num_writes(&self) -> u64 {
+        self.num_writes
+    }
 }
 
 #[allow(unused)]
@@ -63,7 +65,8 @@ impl StorageStateTrait for MockStorage {
     }
 
     fn delete_all(
-        &mut self, access_key_prefix: StorageKeyWithSpace,
+        &mut self,
+        access_key_prefix: StorageKeyWithSpace,
     ) -> Result<Option<Vec<MptKeyValue>>> {
         let prefix = access_key_prefix.to_key_bytes();
 
@@ -88,15 +91,11 @@ impl StorageStateTrait for MockStorage {
         Ok(Some(deleted_kvs))
     }
 
-    fn delete_test_only(
-        &mut self, access_key: StorageKeyWithSpace,
-    ) -> Result<Option<Box<[u8]>>> {
+    fn delete_test_only(&mut self, access_key: StorageKeyWithSpace) -> Result<Option<Box<[u8]>>> {
         unimplemented!()
     }
 
-    fn get(
-        &self, access_key: StorageKeyWithSpace,
-    ) -> Result<Option<Box<[u8]>>> {
+    fn get(&self, access_key: StorageKeyWithSpace) -> Result<Option<Box<[u8]>>> {
         *self.num_reads.lock() += 1;
         let key = access_key.to_key_bytes();
         Ok(self.contents.get(&key).cloned())
@@ -106,9 +105,7 @@ impl StorageStateTrait for MockStorage {
         Err(ErrorKind::Msg("No state root".to_owned()).into())
     }
 
-    fn set(
-        &mut self, access_key: StorageKeyWithSpace, value: Box<[u8]>,
-    ) -> Result<()> {
+    fn set(&mut self, access_key: StorageKeyWithSpace, value: Box<[u8]>) -> Result<()> {
         self.num_writes += 1;
         let key = access_key.to_key_bytes();
         self.contents.insert(key, value);
@@ -116,7 +113,8 @@ impl StorageStateTrait for MockStorage {
     }
 
     fn read_all(
-        &mut self, access_key_prefix: StorageKeyWithSpace,
+        &mut self,
+        access_key_prefix: StorageKeyWithSpace,
     ) -> Result<Option<Vec<MptKeyValue>>> {
         let prefix = access_key_prefix.to_key_bytes();
 
@@ -139,7 +137,7 @@ impl StorageStateTrait for MockStorage {
     }
 }
 
-type StateDbTest = StateDbGeneric;
+type StateDbTest = StateDb;
 
 // convert `key` to storage interface format
 fn storage_key(key: &'static [u8]) -> StorageKeyWithSpace {
@@ -147,10 +145,14 @@ fn storage_key(key: &'static [u8]) -> StorageKeyWithSpace {
 }
 
 // convert `key` to raw storage format
-fn key(key: &'static [u8]) -> Vec<u8> { storage_key(key).to_key_bytes() }
+fn key(key: &'static [u8]) -> Vec<u8> {
+    storage_key(key).to_key_bytes()
+}
 
 // convert `value` to raw storage format
-fn value(value: &'static [u8]) -> StorageValue { value.into() }
+fn value(value: &'static [u8]) -> StorageValue {
+    value.into()
+}
 
 fn init_state_db() -> StateDbTest {
     let mut contents = RawStorage::new();

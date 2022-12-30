@@ -60,19 +60,27 @@ pub trait ABIVariable: Sized {
 }
 
 impl ABIDecodable for () {
-    fn abi_decode(_: &[u8]) -> Result<Self, ABIDecodeError> { Ok(()) }
+    fn abi_decode(_: &[u8]) -> Result<Self, ABIDecodeError> {
+        Ok(())
+    }
 }
 
 impl ABIEncodable for () {
-    fn abi_encode(&self) -> Vec<u8> { Vec::new() }
+    fn abi_encode(&self) -> Vec<u8> {
+        Vec::new()
+    }
 }
 
 impl ABIPackedEncodable for () {
-    fn abi_packed_encode(&self) -> Vec<u8> { Vec::new() }
+    fn abi_packed_encode(&self) -> Vec<u8> {
+        Vec::new()
+    }
 }
 
 impl EventIndexEncodable for () {
-    fn indexed_event_encode(&self) -> Vec<H256> { Vec::new() }
+    fn indexed_event_encode(&self) -> Vec<H256> {
+        Vec::new()
+    }
 }
 
 impl<T: ABIVariable> ABIDecodable for T {
@@ -83,15 +91,16 @@ impl<T: ABIVariable> ABIDecodable for T {
 
 impl<T: ABIVariable> ABIEncodable for T {
     fn abi_encode(&self) -> Vec<u8> {
-        let mut recorder =
-            ABIListWriter::with_heads_length(T::STATIC_LENGTH.unwrap_or(32));
+        let mut recorder = ABIListWriter::with_heads_length(T::STATIC_LENGTH.unwrap_or(32));
         recorder.write_down(self);
         recorder.into_linked_bytes().to_vec()
     }
 }
 
 impl<T: ABIVariable> ABIPackedEncodable for T {
-    fn abi_packed_encode(&self) -> Vec<u8> { self.to_packed_abi().to_vec() }
+    fn abi_packed_encode(&self) -> Vec<u8> {
+        self.to_packed_abi().to_vec()
+    }
 }
 
 impl<T: ABIVariable> EventIndexEncodable for T {

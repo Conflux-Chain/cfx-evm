@@ -3,8 +3,8 @@
 // See http://www.gnu.org/licenses/
 
 use crate::{
-    block::BlockHeight, bytes::Bytes, hash::keccak, pos::PosBlockId,
-    receipt::BlockReceipts, MERKLE_NULL_NODE, NULL_EPOCH,
+    block::BlockHeight, bytes::Bytes, hash::keccak, pos::PosBlockId, receipt::BlockReceipts,
+    MERKLE_NULL_NODE, NULL_EPOCH,
 };
 use cfx_types::{Address, Bloom, H256, KECCAK_EMPTY_BLOOM, U256};
 use malloc_size_of::{new_malloc_size_ops, MallocSizeOf, MallocSizeOfOps};
@@ -90,11 +90,15 @@ pub struct BlockHeader {
 impl Deref for BlockHeader {
     type Target = BlockHeaderRlpPart;
 
-    fn deref(&self) -> &Self::Target { &self.rlp_part }
+    fn deref(&self) -> &Self::Target {
+        &self.rlp_part
+    }
 }
 
 impl DerefMut for BlockHeader {
-    fn deref_mut(&mut self) -> &mut BlockHeaderRlpPart { &mut self.rlp_part }
+    fn deref_mut(&mut self) -> &mut BlockHeaderRlpPart {
+        &mut self.rlp_part
+    }
 }
 
 impl MallocSizeOf for BlockHeader {
@@ -104,30 +108,46 @@ impl MallocSizeOf for BlockHeader {
 }
 
 impl PartialEq for BlockHeader {
-    fn eq(&self, o: &BlockHeader) -> bool { self.rlp_part == o.rlp_part }
+    fn eq(&self, o: &BlockHeader) -> bool {
+        self.rlp_part == o.rlp_part
+    }
 }
 
 impl BlockHeader {
     /// Approximated rlp size of the block header.
-    pub fn approximated_rlp_size(&self) -> usize { self.approximated_rlp_size }
+    pub fn approximated_rlp_size(&self) -> usize {
+        self.approximated_rlp_size
+    }
 
     /// Get the parent_hash field of the header.
-    pub fn parent_hash(&self) -> &H256 { &self.parent_hash }
+    pub fn parent_hash(&self) -> &H256 {
+        &self.parent_hash
+    }
 
     /// Get the block height
-    pub fn height(&self) -> u64 { self.height }
+    pub fn height(&self) -> u64 {
+        self.height
+    }
 
     /// Get the timestamp field of the header.
-    pub fn timestamp(&self) -> u64 { self.timestamp }
+    pub fn timestamp(&self) -> u64 {
+        self.timestamp
+    }
 
     /// Get the author field of the header.
-    pub fn author(&self) -> &Address { &self.author }
+    pub fn author(&self) -> &Address {
+        &self.author
+    }
 
     /// Get the transactions root field of the header.
-    pub fn transactions_root(&self) -> &H256 { &self.transactions_root }
+    pub fn transactions_root(&self) -> &H256 {
+        &self.transactions_root
+    }
 
     /// Get the deferred state root field of the header.
-    pub fn deferred_state_root(&self) -> &H256 { &self.deferred_state_root }
+    pub fn deferred_state_root(&self) -> &H256 {
+        &self.deferred_state_root
+    }
 
     /// Get the deferred block receipts root field of the header.
     pub fn deferred_receipts_root(&self) -> &H256 {
@@ -140,31 +160,49 @@ impl BlockHeader {
     }
 
     /// Get the blame field of the header
-    pub fn blame(&self) -> u32 { self.blame }
+    pub fn blame(&self) -> u32 {
+        self.blame
+    }
 
     /// Get the difficulty field of the header.
-    pub fn difficulty(&self) -> &U256 { &self.difficulty }
+    pub fn difficulty(&self) -> &U256 {
+        &self.difficulty
+    }
 
     /// Get the adaptive field of the header
-    pub fn adaptive(&self) -> bool { self.adaptive }
+    pub fn adaptive(&self) -> bool {
+        self.adaptive
+    }
 
     /// Get the gas limit field of the header.
-    pub fn gas_limit(&self) -> &U256 { &self.gas_limit }
+    pub fn gas_limit(&self) -> &U256 {
+        &self.gas_limit
+    }
 
     /// Get the referee hashes field of the header.
-    pub fn referee_hashes(&self) -> &Vec<H256> { &self.referee_hashes }
+    pub fn referee_hashes(&self) -> &Vec<H256> {
+        &self.referee_hashes
+    }
 
     /// Get the custom data field of the header.
-    pub fn custom(&self) -> &Vec<Bytes> { &self.custom }
+    pub fn custom(&self) -> &Vec<Bytes> {
+        &self.custom
+    }
 
     /// Get the nonce field of the header.
-    pub fn nonce(&self) -> U256 { self.nonce }
+    pub fn nonce(&self) -> U256 {
+        self.nonce
+    }
 
     /// Get the PoS reference.
-    pub fn pos_reference(&self) -> &Option<PosBlockId> { &self.pos_reference }
+    pub fn pos_reference(&self) -> &Option<PosBlockId> {
+        &self.pos_reference
+    }
 
     /// Set the nonce field of the header.
-    pub fn set_nonce(&mut self, nonce: U256) { self.nonce = nonce; }
+    pub fn set_nonce(&mut self, nonce: U256) {
+        self.nonce = nonce;
+    }
 
     /// Set the timestamp filed of the header.
     pub fn set_timestamp(&mut self, timestamp: u64) {
@@ -184,7 +222,9 @@ impl BlockHeader {
     }
 
     /// Get the hash of PoW problem.
-    pub fn problem_hash(&self) -> H256 { keccak(self.rlp_without_nonce()) }
+    pub fn problem_hash(&self) -> H256 {
+        keccak(self.rlp_without_nonce())
+    }
 
     /// Get the RLP representation of this header(except nonce).
     pub fn rlp_without_nonce(&self) -> Bytes {
@@ -203,9 +243,8 @@ impl BlockHeader {
     /// Place this header(except nonce) into an RLP stream `stream`.
     fn stream_rlp_without_nonce(&self, stream: &mut RlpStream) {
         let adaptive_n = if self.adaptive { 1 as u8 } else { 0 as u8 };
-        let list_len = HEADER_LIST_MIN_LEN
-            + self.pos_reference.is_some() as usize
-            + self.custom.len();
+        let list_len =
+            HEADER_LIST_MIN_LEN + self.pos_reference.is_some() as usize + self.custom.len();
         stream
             .begin_list(list_len)
             .append(&self.parent_hash)
@@ -233,10 +272,8 @@ impl BlockHeader {
     /// Place this header into an RLP stream `stream`.
     fn stream_rlp(&self, stream: &mut RlpStream) {
         let adaptive_n = if self.adaptive { 1 as u8 } else { 0 as u8 };
-        let list_len = HEADER_LIST_MIN_LEN
-            + 1
-            + self.pos_reference.is_some() as usize
-            + self.custom.len();
+        let list_len =
+            HEADER_LIST_MIN_LEN + 1 + self.pos_reference.is_some() as usize + self.custom.len();
         stream
             .begin_list(list_len)
             .append(&self.parent_hash)
@@ -264,10 +301,8 @@ impl BlockHeader {
     /// Place this header and its `pow_hash` into an RLP stream `stream`.
     pub fn stream_rlp_with_pow_hash(&self, stream: &mut RlpStream) {
         let adaptive_n = if self.adaptive { 1 as u8 } else { 0 as u8 };
-        let list_len = HEADER_LIST_MIN_LEN
-            + 2
-            + self.pos_reference.is_some() as usize
-            + self.custom.len();
+        let list_len =
+            HEADER_LIST_MIN_LEN + 2 + self.pos_reference.is_some() as usize + self.custom.len();
         stream
             .begin_list(list_len)
             .append(&self.parent_hash)
@@ -318,9 +353,7 @@ impl BlockHeader {
         };
         let pow_hash = r.val_at(14)?;
 
-        for i in
-            (15 + rlp_part.pos_reference.is_some() as usize)..r.item_count()?
-        {
+        for i in (15 + rlp_part.pos_reference.is_some() as usize)..r.item_count()? {
             rlp_part.custom.push(r.at(i)?.as_raw().to_vec())
         }
 
@@ -402,30 +435,22 @@ impl BlockHeaderBuilder {
         self
     }
 
-    pub fn with_transactions_root(
-        &mut self, transactions_root: H256,
-    ) -> &mut Self {
+    pub fn with_transactions_root(&mut self, transactions_root: H256) -> &mut Self {
         self.transactions_root = transactions_root;
         self
     }
 
-    pub fn with_deferred_state_root(
-        &mut self, deferred_state_root: H256,
-    ) -> &mut Self {
+    pub fn with_deferred_state_root(&mut self, deferred_state_root: H256) -> &mut Self {
         self.deferred_state_root = deferred_state_root;
         self
     }
 
-    pub fn with_deferred_receipts_root(
-        &mut self, deferred_receipts_root: H256,
-    ) -> &mut Self {
+    pub fn with_deferred_receipts_root(&mut self, deferred_receipts_root: H256) -> &mut Self {
         self.deferred_receipts_root = deferred_receipts_root;
         self
     }
 
-    pub fn with_deferred_logs_bloom_hash(
-        &mut self, deferred_logs_bloom_hash: H256,
-    ) -> &mut Self {
+    pub fn with_deferred_logs_bloom_hash(&mut self, deferred_logs_bloom_hash: H256) -> &mut Self {
         self.deferred_logs_bloom_hash = deferred_logs_bloom_hash;
         self
     }
@@ -450,9 +475,7 @@ impl BlockHeaderBuilder {
         self
     }
 
-    pub fn with_referee_hashes(
-        &mut self, referee_hashes: Vec<H256>,
-    ) -> &mut Self {
+    pub fn with_referee_hashes(&mut self, referee_hashes: Vec<H256>) -> &mut Self {
         self.referee_hashes = referee_hashes;
         self
     }
@@ -467,9 +490,7 @@ impl BlockHeaderBuilder {
         self
     }
 
-    pub fn with_pos_reference(
-        &mut self, pos_reference: Option<PosBlockId>,
-    ) -> &mut Self {
+    pub fn with_pos_reference(&mut self, pos_reference: Option<PosBlockId>) -> &mut Self {
         self.pos_reference = pos_reference;
         self
     }
@@ -499,25 +520,24 @@ impl BlockHeaderBuilder {
             approximated_rlp_size: 0,
         };
 
-        block_header.approximated_rlp_size =
-            mem::size_of::<BlockHeaderRlpPart>()
-                + block_header
-                    .referee_hashes
-                    .size_of(&mut new_malloc_size_ops());
+        block_header.approximated_rlp_size = mem::size_of::<BlockHeaderRlpPart>()
+            + block_header
+                .referee_hashes
+                .size_of(&mut new_malloc_size_ops());
 
         block_header
     }
 
-    pub fn compute_block_logs_bloom_hash(
-        receipts: &Vec<Arc<BlockReceipts>>,
-    ) -> H256 {
-        let bloom = receipts.iter().map(|x| &x.receipts).flatten().fold(
-            Bloom::zero(),
-            |mut b, r| {
-                b.accrue_bloom(&r.log_bloom);
-                b
-            },
-        );
+    pub fn compute_block_logs_bloom_hash(receipts: &Vec<Arc<BlockReceipts>>) -> H256 {
+        let bloom =
+            receipts
+                .iter()
+                .map(|x| &x.receipts)
+                .flatten()
+                .fold(Bloom::zero(), |mut b, r| {
+                    b.accrue_bloom(&r.log_bloom);
+                    b
+                });
 
         keccak(bloom)
     }
@@ -532,18 +552,15 @@ impl BlockHeaderBuilder {
     pub fn compute_blame_state_root_vec_root(roots: Vec<H256>) -> H256 {
         let mut accumulated_root = roots.last().unwrap().clone();
         for i in (0..(roots.len() - 1)).rev() {
-            accumulated_root =
-                BlockHeaderBuilder::compute_blame_state_root_incremental(
-                    roots[i],
-                    accumulated_root,
-                );
+            accumulated_root = BlockHeaderBuilder::compute_blame_state_root_incremental(
+                roots[i],
+                accumulated_root,
+            );
         }
         accumulated_root
     }
 
-    pub fn compute_blame_state_root_incremental(
-        first_root: H256, remaining_root: H256,
-    ) -> H256 {
+    pub fn compute_blame_state_root_incremental(first_root: H256, remaining_root: H256) -> H256 {
         let mut buffer = Vec::with_capacity(H256::len_bytes() * 2);
         buffer.extend_from_slice(first_root.as_bytes());
         buffer.extend_from_slice(remaining_root.as_bytes());
@@ -552,7 +569,9 @@ impl BlockHeaderBuilder {
 }
 
 impl Encodable for BlockHeader {
-    fn rlp_append(&self, stream: &mut RlpStream) { self.stream_rlp(stream); }
+    fn rlp_append(&self, stream: &mut RlpStream) {
+        self.stream_rlp(stream);
+    }
 }
 
 impl Decodable for BlockHeader {
@@ -576,9 +595,7 @@ impl Decodable for BlockHeader {
             nonce: r.val_at(13)?,
             pos_reference: r.val_at(14).unwrap_or(None),
         };
-        for i in
-            (14 + rlp_part.pos_reference.is_some() as usize)..r.item_count()?
-        {
+        for i in (14 + rlp_part.pos_reference.is_some() as usize)..r.item_count()? {
             rlp_part.custom.push(r.at(i)?.as_raw().to_vec())
         }
 

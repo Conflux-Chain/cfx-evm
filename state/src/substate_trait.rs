@@ -10,13 +10,19 @@ pub trait SubstateTrait {
     fn logs_mut(&mut self) -> &mut Vec<LogEntry>;
 
     fn storage_at(
-        &self, state: &dyn StateOpsTrait, address: &AddressWithSpace,
+        &self,
+        state: &dyn StateOpsTrait,
+        address: &AddressWithSpace,
         key: &[u8],
     ) -> DbResult<U256>;
 
     fn set_storage(
-        &mut self, state: &mut dyn StateOpsTrait, address: &AddressWithSpace,
-        key: Vec<u8>, value: U256, owner: Address,
+        &mut self,
+        state: &mut dyn StateOpsTrait,
+        address: &AddressWithSpace,
+        key: Vec<u8>,
+        value: U256,
+        owner: Address,
     ) -> DbResult<()>;
 
     fn record_storage_occupy(&mut self, address: &Address, collaterals: u64);
