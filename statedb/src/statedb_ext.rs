@@ -4,42 +4,17 @@
 
 use rlp::Rlp;
 
+use crate::StateDbTrait;
 use cfx_internal_common::debug::ComputeEpochDebugRecord;
 use cfx_parameters::internal_contract_addresses::STORAGE_INTEREST_STAKING_CONTRACT_ADDRESS;
 use cfx_types::{AddressWithSpace, H256, U256};
 use primitives::{is_default::IsDefault, Account, CodeInfo, StorageKey, StorageKeyWithSpace};
 
-use super::{Result, StateDb};
-
-pub trait StateDbExt {
-    fn get<T>(&self, key: StorageKeyWithSpace) -> Result<Option<T>>
-    where
-        T: ::rlp::Decodable;
-
-    fn set<T>(
-        &mut self,
-        key: StorageKeyWithSpace,
-        value: &T,
-        debug_record: Option<&mut ComputeEpochDebugRecord>,
-    ) -> Result<()>
-    where
-        T: ::rlp::Encodable + IsDefault;
-
-    fn get_account(&self, address: &AddressWithSpace) -> Result<Option<Account>>;
-
-    fn get_code(&self, address: &AddressWithSpace, code_hash: &H256) -> Result<Option<CodeInfo>>;
-
-    fn get_total_issued_tokens(&self) -> Result<U256>;
-    fn set_total_issued_tokens(
-        &mut self,
-        total_issued_tokens: &U256,
-        debug_record: Option<&mut ComputeEpochDebugRecord>,
-    ) -> Result<()>;
-}
+use super::Result;
 
 pub const TOTAL_TOKENS_KEY: &'static [u8] = b"total_issued_tokens";
 
-impl StateDbExt for StateDb {
+pub trait StateDbExt: StateDbTrait {
     fn get<T>(&self, key: StorageKeyWithSpace) -> Result<Option<T>>
     where
         T: ::rlp::Decodable,
@@ -107,3 +82,5 @@ impl StateDbExt for StateDb {
         self.set::<U256>(total_issued_tokens_key, total_issued_tokens, debug_record)
     }
 }
+
+impl<T: StateDbTrait> StateDbExt for T {}

@@ -3,18 +3,11 @@
 // See http://www.gnu.org/licenses/
 
 pub trait StateTrait: CheckpointTrait + AsStateOpsTrait {
-    type Substate: SubstateTrait;
-
-    fn compute_state_root(
-        &mut self,
-        debug_record: Option<&mut ComputeEpochDebugRecord>,
-    ) -> DbResult<StateRootWithAuxInfo>;
-
     fn commit(
         &mut self,
         epoch_id: EpochId,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
-    ) -> DbResult<StateRootWithAuxInfo>;
+    ) -> DbResult<()>;
 }
 
 pub trait StateOpsTrait {
@@ -123,8 +116,7 @@ pub trait CheckpointTrait: StateOpsTrait {
 }
 
 use super::CleanupMode;
-use crate::substate_trait::SubstateTrait;
-use cfx_internal_common::{debug::ComputeEpochDebugRecord, StateRootWithAuxInfo};
+use cfx_internal_common::debug::ComputeEpochDebugRecord;
 use cfx_statedb::Result as DbResult;
 use cfx_types::{AddressWithSpace, H256, U256};
 use primitives::{EpochId, StorageLayout};

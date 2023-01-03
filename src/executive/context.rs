@@ -11,13 +11,13 @@ use crate::{
     bytes::Bytes,
     machine::Machine,
     observer::VmObserve,
-    state::CallStackInfo,
+    state::{CallStackInfo, Substate},
     vm::{
         self, ActionParams, ActionValue, CallType, Context as ContextTrait, ContractCreateResult,
         CreateContractAddress, CreateType, Env, MessageCallResult, ReturnData, Spec, TrapKind,
     },
 };
-use cfx_state::{StateTrait, SubstateMngTrait, SubstateTrait};
+use cfx_state::StateTrait;
 use cfx_types::{Address, AddressSpaceUtil, AddressWithSpace, Space, H256, U256};
 use primitives::transaction::UNSIGNED_SENDER;
 use std::sync::Arc;
@@ -54,17 +54,16 @@ impl OriginInfo {
 pub struct Context<
     'a, /* Lifetime of transaction executive. */
     'b, /* Lifetime of call-create executive. */
-    Substate: SubstateTrait,
 > {
-    state: &'b mut dyn StateTrait<Substate = Substate>,
+    state: &'b mut dyn StateTrait,
     callstack: &'b mut CallStackInfo,
-    local_part: &'b mut LocalContext<'a, Substate>,
+    local_part: &'b mut LocalContext<'a>,
 }
 
 /// The `LocalContext` only contains the parameters can be owned by an
 /// executive. It will be never change during the lifetime of its corresponding
 /// executive.
-pub struct LocalContext<'a, Substate: SubstateTrait> {
+pub struct LocalContext<'a> {
     pub space: Space,
     pub env: &'a Env,
     pub depth: usize,
@@ -76,7 +75,7 @@ pub struct LocalContext<'a, Substate: SubstateTrait> {
     pub static_flag: bool,
 }
 
-impl<'a, 'b, Substate: SubstateTrait> LocalContext<'a, Substate> {
+impl<'a, 'b> LocalContext<'a> {
     pub fn new(
         space: Space,
         env: &'a Env,
@@ -107,9 +106,9 @@ impl<'a, 'b, Substate: SubstateTrait> LocalContext<'a, Substate> {
     /// these parameters.
     pub fn activate(
         &'b mut self,
-        state: &'b mut dyn StateTrait<Substate = Substate>,
+        state: &'b mut dyn StateTrait,
         callstack: &'b mut CallStackInfo,
-    ) -> Context<'a, 'b, Substate> {
+    ) -> Context<'a, 'b> {
         Context {
             state,
             local_part: self,
@@ -118,16 +117,13 @@ impl<'a, 'b, Substate: SubstateTrait> LocalContext<'a, Substate> {
     }
 }
 
-impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substate> {
+impl<'a, 'b> ContextTrait for Context<'a, 'b> {
     fn storage_at(&self, key: &Vec<u8>) -> vm::Result<U256> {
         let caller = AddressWithSpace {
             address: self.local_part.origin.address,
             space: self.local_part.space,
         };
-        self.local_part
-            .substate
-            .storage_at(self.state.as_state_ops(), &caller, key)
-            .map_err(Into::into)
+        self.state.storage_at(&caller, key).map_err(Into::into)
     }
 
     fn set_storage(&mut self, key: Vec<u8>, value: U256) -> vm::Result<()> {
@@ -138,9 +134,8 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
         if self.is_static() {
             Err(vm::Error::MutableCallInStaticContext)
         } else {
-            self.local_part
-                .substate
-                .set_storage(self.state.as_mut_state_ops(), &caller, key, value)
+            self.state
+                .set_storage(&caller, key, value)
                 .map_err(Into::into)
         }
     }
@@ -365,7 +360,7 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
         }
 
         let address = self.local_part.origin.address.clone();
-        self.local_part.substate.logs_mut().push(LogEntry {
+        self.local_part.substate.logs.push(LogEntry {
             address,
             topics,
             data: data.to_vec(),
@@ -385,16 +380,18 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
             .address
             .with_space(self.local_part.space);
 
+        let spec = self.local_part.spec;
+
         match self.local_part.is_create {
             false => Ok(*gas),
             true if apply_state => {
-                let create_data_gas = self.local_part.spec.create_data_gas
+                let create_data_gas = spec.create_data_gas
                     * match self.local_part.space {
-                        Space::Ethereum => self.local_part.spec.evm_gas_ratio,
+                        Space::Ethereum => spec.evm_gas_ratio,
                     };
                 let return_cost = U256::from(data.len()) * create_data_gas;
-                if return_cost > *gas || data.len() > self.local_part.spec.create_data_limit {
-                    return match self.local_part.spec.exceptional_failed_code_deposit {
+                if return_cost > *gas || data.len() > spec.create_data_limit {
+                    return match spec.exceptional_failed_code_deposit {
                         true => Err(vm::Error::OutOfGas),
                         false => Ok(*gas),
                     };

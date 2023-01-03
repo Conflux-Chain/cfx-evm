@@ -8,14 +8,15 @@ use std::{
 };
 
 use cfx_bytes::Bytes;
-use cfx_internal_common::{debug::ComputeEpochDebugRecord, StateRootWithAuxInfo};
+use cfx_internal_common::debug::ComputeEpochDebugRecord;
 use cfx_parameters::internal_contract_addresses::SYSTEM_STORAGE_ADDRESS;
 use cfx_state::{
     state_trait::{AsStateOpsTrait, CheckpointTrait, StateOpsTrait},
     CleanupMode, StateTrait,
 };
-use cfx_statedb::{ErrorKind as DbErrorKind, Result as DbResult, StateDb, StateDbExt};
-use cfx_storage::utils::access_mode;
+use cfx_statedb::{
+    ErrorKind as DbErrorKind, Result as DbResult, StateDb, StateDbExt, StateDbTrait,
+};
 use cfx_types::{AddressSpaceUtil, AddressWithSpace, H256, U256};
 use parking_lot::{MappedRwLockWriteGuard, RwLock, RwLockUpgradableReadGuard, RwLockWriteGuard};
 #[cfg(test)]
@@ -68,14 +69,12 @@ pub struct State {
 }
 
 impl StateTrait for State {
-    type Substate = Substate;
-
-    // It's guaranteed that the second call of this method is a no-op.
-    fn compute_state_root(
+    fn commit(
         &mut self,
+        epoch_id: EpochId,
         mut debug_record: Option<&mut ComputeEpochDebugRecord>,
-    ) -> DbResult<StateRootWithAuxInfo> {
-        debug!("state.compute_state_root");
+    ) -> DbResult<()> {
+        debug!("Commit epoch[{}]", epoch_id);
 
         assert!(self.checkpoints.get_mut().is_empty());
         assert!(self.world_statistics_checkpoints.get_mut().is_empty());
@@ -100,16 +99,6 @@ impl StateTrait for State {
         }
         self.recycle_storage(killed_addresses, debug_record.as_deref_mut())?;
         self.commit_world_statistics(debug_record.as_deref_mut())?;
-        self.db.compute_state_root(debug_record)
-    }
-
-    fn commit(
-        &mut self,
-        epoch_id: EpochId,
-        mut debug_record: Option<&mut ComputeEpochDebugRecord>,
-    ) -> DbResult<StateRootWithAuxInfo> {
-        debug!("Commit epoch[{}]", epoch_id);
-        self.compute_state_root(debug_record.as_deref_mut())?;
         Ok(self.db.commit(epoch_id, debug_record)?)
     }
 }
@@ -464,14 +453,14 @@ impl State {
     ) -> DbResult<()> {
         // TODO: Think about kill_dust and collateral refund.
         for address in &killed_addresses {
-            self.db.delete_all::<access_mode::Write>(
-                StorageKey::new_storage_root_key(&address.address).with_space(address.space),
-                debug_record.as_deref_mut(),
-            )?;
-            self.db.delete_all::<access_mode::Write>(
-                StorageKey::new_code_root_key(&address.address).with_space(address.space),
-                debug_record.as_deref_mut(),
-            )?;
+            // self.db.delete_all::<access_mode::Write>(
+            //     StorageKey::new_storage_root_key(&address.address).with_space(address.space),
+            //     debug_record.as_deref_mut(),
+            // )?;
+            // self.db.delete_all::<access_mode::Write>(
+            //     StorageKey::new_code_root_key(&address.address).with_space(address.space),
+            //     debug_record.as_deref_mut(),
+            // )?;
             self.db.delete(
                 StorageKey::new_account_key(&address.address).with_space(address.space),
                 debug_record.as_deref_mut(),

@@ -302,7 +302,7 @@ impl SimpleExecutionTrait for DeployEip1820 {
         context
             .state
             .init_code(&address, eip_1820::BYTE_CODE.clone())?;
-        context.substate.contracts_created_mut().push(address);
+        context.substate.contracts_created.push(address);
         Ok(())
     }
 }

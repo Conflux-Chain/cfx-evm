@@ -4,10 +4,10 @@
 
 use crate::{
     observer::{AddressPocket, VmObserve},
-    state::cleanup_mode,
+    state::{cleanup_mode, Substate},
     vm::{self, Spec},
 };
-use cfx_state::{state_trait::StateOpsTrait, SubstateTrait};
+use cfx_state::state_trait::StateOpsTrait;
 use cfx_types::{AddressWithSpace, U256};
 
 /// The Actual Implementation of `suicide`.
@@ -22,11 +22,11 @@ pub fn suicide(
     refund_address: &AddressWithSpace,
     state: &mut dyn StateOpsTrait,
     spec: &Spec,
-    substate: &mut dyn SubstateTrait,
+    substate: &mut Substate,
     tracer: &mut dyn VmObserve,
     account_start_nonce: U256,
 ) -> vm::Result<()> {
-    substate.suicides_mut().insert(contract_address.clone());
+    substate.suicides.insert(contract_address.clone());
     let balance = state.balance(contract_address)?;
 
     if refund_address == contract_address {

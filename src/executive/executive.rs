@@ -26,10 +26,7 @@ use crate::{
     vm_factory::VmFactory,
 };
 use cfx_parameters::consensus::ONE_CFX_IN_DRIP;
-use cfx_state::{
-    state_trait::StateOpsTrait, substate_trait::SubstateMngTrait, CleanupMode, StateTrait,
-    SubstateTrait,
-};
+use cfx_state::{state_trait::StateOpsTrait, CleanupMode, StateTrait};
 use cfx_statedb::Result as DbResult;
 use cfx_types::{Address, AddressSpaceUtil, AddressWithSpace, Space, H256, U256, U512, U64};
 use primitives::{
@@ -251,8 +248,8 @@ enum CallCreateExecutiveKind<'a> {
     ExecCreate,
 }
 
-pub struct CallCreateExecutive<'a, Substate: SubstateMngTrait> {
-    context: LocalContext<'a, Substate>,
+pub struct CallCreateExecutive<'a> {
+    context: LocalContext<'a>,
     factory: &'a VmFactory,
     status: ExecutiveStatus,
     create_address: Option<Address>,
@@ -267,7 +264,7 @@ pub enum ExecutiveStatus {
     Done,
 }
 
-impl<'a, Substate: SubstateMngTrait> CallCreateExecutive<'a, Substate> {
+impl<'a> CallCreateExecutive<'a> {
     /// Create a new call executive using raw data.
     pub fn new_call_raw(
         params: ActionParams,
@@ -423,7 +420,7 @@ impl<'a, Substate: SubstateMngTrait> CallCreateExecutive<'a, Substate> {
         params: &ActionParams,
         spec: &Spec,
         state: &mut dyn StateOpsTrait,
-        substate: &mut dyn SubstateTrait,
+        substate: &mut Substate,
         account_start_nonce: U256,
     ) -> DbResult<()> {
         let sender = AddressWithSpace {
@@ -451,7 +448,7 @@ impl<'a, Substate: SubstateMngTrait> CallCreateExecutive<'a, Substate> {
         params: &ActionParams,
         spec: &Spec,
         state: &mut dyn StateOpsTrait,
-        substate: &mut dyn SubstateTrait,
+        substate: &mut Substate,
         storage_layout: Option<StorageLayout>,
     ) -> DbResult<()> {
         let sender = AddressWithSpace {
@@ -491,7 +488,7 @@ impl<'a, Substate: SubstateMngTrait> CallCreateExecutive<'a, Substate> {
     fn process_return(
         mut self,
         result: vm::Result<GasLeft>,
-        state: &mut dyn StateTrait<Substate = Substate>,
+        state: &mut dyn StateTrait,
         parent_substate: &mut Substate,
         callstack: &mut CallStackInfo,
         tracer: &mut dyn VmObserve,
@@ -517,7 +514,7 @@ impl<'a, Substate: SubstateMngTrait> CallCreateExecutive<'a, Substate> {
             let mut substate = self.context.substate;
             if let Some(create_address) = self.create_address {
                 substate
-                    .contracts_created_mut()
+                    .contracts_created
                     .push(create_address.with_space(self.context.space));
             }
 
@@ -534,7 +531,7 @@ impl<'a, Substate: SubstateMngTrait> CallCreateExecutive<'a, Substate> {
 
     /// If the executive triggers a sub-call during execution, this function
     /// outputs a trap error with sub-call parameters and return point.
-    fn process_trap(mut self, trap_err: ExecTrapError) -> ExecutiveTrapError<'a, Substate> {
+    fn process_trap(mut self, trap_err: ExecTrapError) -> ExecutiveTrapError<'a> {
         match trap_err {
             TrapError::Call(subparams, resume) => {
                 self.status = ExecutiveStatus::ResumeCall(resume);
@@ -552,11 +549,11 @@ impl<'a, Substate: SubstateMngTrait> CallCreateExecutive<'a, Substate> {
     /// `resume` to continue the execution.
     pub fn exec(
         mut self,
-        state: &mut dyn StateTrait<Substate = Substate>,
+        state: &mut dyn StateTrait,
         parent_substate: &mut Substate,
         callstack: &mut CallStackInfo,
         tracer: &mut dyn VmObserve,
-    ) -> DbResult<ExecutiveTrapResult<'a, ExecutiveResult, Substate>> {
+    ) -> DbResult<ExecutiveTrapResult<'a, ExecutiveResult>> {
         let status = std::mem::replace(&mut self.status, ExecutiveStatus::Running);
         let params = if let ExecutiveStatus::Input(params) = status {
             params
@@ -635,11 +632,11 @@ impl<'a, Substate: SubstateMngTrait> CallCreateExecutive<'a, Substate> {
     pub fn resume(
         mut self,
         result: vm::Result<ExecutiveResult>,
-        state: &mut dyn StateTrait<Substate = Substate>,
+        state: &mut dyn StateTrait,
         parent_substate: &mut Substate,
         callstack: &mut CallStackInfo,
         tracer: &mut dyn VmObserve,
-    ) -> DbResult<ExecutiveTrapResult<'a, ExecutiveResult, Substate>> {
+    ) -> DbResult<ExecutiveTrapResult<'a, ExecutiveResult>> {
         let status = std::mem::replace(&mut self.status, ExecutiveStatus::Running);
 
         // TODO: Substate from sub-call should have been merged here by
@@ -680,11 +677,11 @@ impl<'a, Substate: SubstateMngTrait> CallCreateExecutive<'a, Substate> {
     fn process_output(
         self,
         output: ExecTrapResult<GasLeft>,
-        state: &mut dyn StateTrait<Substate = Substate>,
+        state: &mut dyn StateTrait,
         parent_substate: &mut Substate,
         callstack: &mut CallStackInfo,
         tracer: &mut dyn VmObserve,
-    ) -> DbResult<ExecutiveTrapResult<'a, ExecutiveResult, Substate>> {
+    ) -> DbResult<ExecutiveTrapResult<'a, ExecutiveResult>> {
         // Convert the `ExecTrapResult` (result of evm) to `ExecutiveTrapResult`
         // (result of self).
         let trap_result = match output {
@@ -707,7 +704,7 @@ impl<'a, Substate: SubstateMngTrait> CallCreateExecutive<'a, Substate> {
     /// current-level tracing.
     pub fn consume(
         self,
-        state: &'a mut dyn StateTrait<Substate = Substate>,
+        state: &'a mut dyn StateTrait,
         top_substate: &mut Substate,
         tracer: &mut dyn VmObserve,
     ) -> DbResult<vm::Result<FinalizationResult>> {
@@ -749,7 +746,7 @@ impl<'a, Substate: SubstateMngTrait> CallCreateExecutive<'a, Substate> {
     }
 
     /// Output callee executive and caller executive from trap kind error.
-    pub fn from_trap_error(trap_err: ExecutiveTrapError<'a, Substate>) -> (Self, Self) {
+    pub fn from_trap_error(trap_err: ExecutiveTrapError<'a>) -> (Self, Self) {
         match trap_err {
             TrapError::Call(params, parent) => (
                 /* callee */
@@ -820,17 +817,16 @@ impl ExecutiveResult {
 }
 
 /// Trap result returned by executive.
-pub type ExecutiveTrapResult<'a, T, Substate> =
-    vm::TrapResult<T, CallCreateExecutive<'a, Substate>, CallCreateExecutive<'a, Substate>>;
+pub type ExecutiveTrapResult<'a, T> =
+    vm::TrapResult<T, CallCreateExecutive<'a>, CallCreateExecutive<'a>>;
 
-pub type ExecutiveTrapError<'a, Substate> =
-    vm::TrapError<CallCreateExecutive<'a, Substate>, CallCreateExecutive<'a, Substate>>;
+pub type ExecutiveTrapError<'a> = vm::TrapError<CallCreateExecutive<'a>, CallCreateExecutive<'a>>;
 
-pub type Executive<'a> = ExecutiveGeneric<'a, Substate>;
+pub type Executive<'a> = ExecutiveGeneric<'a>;
 
 /// Transaction executor.
-pub struct ExecutiveGeneric<'a, Substate: SubstateTrait> {
-    pub state: &'a mut dyn StateTrait<Substate = Substate>,
+pub struct ExecutiveGeneric<'a> {
+    pub state: &'a mut dyn StateTrait,
     env: &'a Env,
     machine: &'a Machine,
     spec: &'a Spec,
@@ -854,10 +850,10 @@ pub fn gas_required_for(is_create: bool, data: &[u8], spec: &Spec) -> u64 {
     )
 }
 
-impl<'a, Substate: SubstateMngTrait> ExecutiveGeneric<'a, Substate> {
+impl<'a> ExecutiveGeneric<'a> {
     /// Basic constructor.
     pub fn new(
-        state: &'a mut dyn StateTrait<Substate = Substate>,
+        state: &'a mut dyn StateTrait,
         env: &'a Env,
         machine: &'a Machine,
         spec: &'a Spec,
@@ -1311,7 +1307,7 @@ impl<'a, Substate: SubstateMngTrait> ExecutiveGeneric<'a, Substate> {
 
         // perform suicides
 
-        let subsubstate = self.kill_process(&substate.suicides(), observer.as_state_tracer())?;
+        let subsubstate = self.kill_process(&substate.suicides, observer.as_state_tracer())?;
         substate.accrue(subsubstate);
 
         // TODO should be added back after enabling dust collection
@@ -1352,8 +1348,8 @@ impl<'a, Substate: SubstateMngTrait> ExecutiveGeneric<'a, Substate> {
                     gas_used,
                     gas_charged,
                     fee: fees_value,
-                    logs: substate.logs().to_vec(),
-                    contracts_created: substate.contracts_created().to_vec(),
+                    logs: substate.logs.to_vec(),
+                    contracts_created: substate.contracts_created.to_vec(),
                     output,
                     trace,
                     estimated_gas_limit,

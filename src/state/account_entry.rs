@@ -8,6 +8,7 @@ use crate::{
     state::{AccountEntryProtectedMethods, State},
 };
 use cfx_internal_common::debug::ComputeEpochDebugRecord;
+use cfx_statedb::StateDbTrait;
 use cfx_statedb::{Result as DbResult, StateDb, StateDbExt};
 #[cfg(test)]
 use cfx_types::AddressSpaceUtil;
@@ -122,26 +123,6 @@ impl OverlayAccount {
             is_newly_created_contract: false,
             invalidated_storage: true,
         }
-    }
-
-    /// Create an OverlayAccount of contract account when the account doesn't
-    /// exist before.
-    #[cfg(test)]
-    pub fn new_contract(
-        address: &Address,
-        balance: U256,
-        nonce: U256,
-        invalidated_storage: bool,
-        storage_layout: Option<StorageLayout>,
-    ) -> Self {
-        Self::new_contract_with_admin(
-            &address.with_native_space(),
-            balance,
-            nonce,
-            &Address::zero(),
-            invalidated_storage,
-            storage_layout,
-        )
     }
 
     /// Create an OverlayAccount of contract account when the account doesn't
@@ -404,10 +385,12 @@ impl OverlayAccount {
                 .set::<CodeInfo>(storage_key, code_info, debug_record.as_deref_mut())?;
         }
 
-        if let Some(layout) = self.storage_layout_change.clone() {
-            state
-                .db
-                .set_storage_layout(&self.address, layout, debug_record.as_deref_mut())?;
+        if let Some(_layout) = self.storage_layout_change.clone() {
+            // TODO: storage layout is an unclear feature in Conflux.
+
+            // state
+            //     .db
+            //     .set_storage_layout(&self.address, layout, debug_record.as_deref_mut())?;
         }
 
         state.db.set::<Account>(

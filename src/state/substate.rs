@@ -4,9 +4,9 @@
 
 use super::CleanupMode;
 use crate::evm::{CleanDustMode, Spec};
-use cfx_state::{state_trait::StateOpsTrait, substate_trait::SubstateMngTrait, SubstateTrait};
+use cfx_state::state_trait::StateOpsTrait;
 use cfx_statedb::Result as DbResult;
-use cfx_types::{Address, AddressWithSpace, U256};
+use cfx_types::{AddressWithSpace, U256};
 use primitives::LogEntry;
 use std::collections::{HashMap, HashSet};
 
@@ -14,7 +14,6 @@ use std::collections::{HashMap, HashSet};
 pub struct CallStackInfo {
     call_stack_recipient_addresses: Vec<(AddressWithSpace, bool)>,
     address_counter: HashMap<AddressWithSpace, u32>,
-    first_reentrancy_depth: Option<usize>,
 }
 
 impl CallStackInfo {
@@ -22,18 +21,10 @@ impl CallStackInfo {
         CallStackInfo {
             call_stack_recipient_addresses: Vec::default(),
             address_counter: HashMap::default(),
-            first_reentrancy_depth: None,
         }
     }
 
     pub fn push(&mut self, address: AddressWithSpace, is_create: bool) {
-        // We should still use the correct behaviour to check if reentrancy
-        // happens.
-        if self.last() != Some(&address) && self.contains_key(&address) {
-            self.first_reentrancy_depth
-                .get_or_insert(self.call_stack_recipient_addresses.len());
-        }
-
         self.call_stack_recipient_addresses
             .push((address.clone(), is_create));
         *self.address_counter.entry(address).or_insert(0) += 1;
@@ -49,9 +40,6 @@ impl CallStackInfo {
             *poped_address_cnt -= 1;
             if *poped_address_cnt == 0 {
                 self.address_counter.remove(address);
-            }
-            if self.first_reentrancy_depth == Some(self.call_stack_recipient_addresses.len()) {
-                self.first_reentrancy_depth = None
             }
         }
         maybe_address
@@ -79,61 +67,29 @@ pub struct Substate {
     /// Any accounts that are touched.
     // touched is never used and it is not maintained properly.
     pub touched: HashSet<AddressWithSpace>,
-    /// Any accounts that occupy some storage.
-    pub storage_collateralized: HashMap<Address, u64>,
-    /// Any accounts that release some storage.
-    pub storage_released: HashMap<Address, u64>,
     /// Any logs.
     pub logs: Vec<LogEntry>,
     /// Created contracts.
     pub contracts_created: Vec<AddressWithSpace>,
 }
 
-impl SubstateMngTrait for Substate {
-    fn accrue(&mut self, s: Self) {
+impl Substate {
+    pub fn accrue(&mut self, s: Self) {
         self.suicides.extend(s.suicides);
         self.touched.extend(s.touched);
         self.logs.extend(s.logs);
         self.contracts_created.extend(s.contracts_created);
-        for (address, amount) in s.storage_collateralized {
-            *self.storage_collateralized.entry(address).or_insert(0) += amount;
-        }
-        for (address, amount) in s.storage_released {
-            *self.storage_released.entry(address).or_insert(0) += amount;
-        }
     }
 
-    fn new() -> Self {
+    pub fn new() -> Self {
         Substate::default()
     }
 }
 
-impl SubstateTrait for Substate {
-    fn get_collateral_change(&self, address: &Address) -> (u64, u64) {
-        let inc = self
-            .storage_collateralized
-            .get(address)
-            .cloned()
-            .unwrap_or(0);
-        let sub = self.storage_released.get(address).cloned().unwrap_or(0);
-        if inc > sub {
-            (inc - sub, 0)
-        } else {
-            (0, sub - inc)
-        }
-    }
-
-    fn logs(&self) -> &[LogEntry] {
-        &self.logs
-    }
-
-    fn logs_mut(&mut self) -> &mut Vec<LogEntry> {
-        &mut self.logs
-    }
-
+impl Substate {
     // Let VM access storage from substate so that storage ownership can be
     // maintained without help from state.
-    fn storage_at(
+    pub fn storage_at(
         &self,
         state: &dyn StateOpsTrait,
         address: &AddressWithSpace,
@@ -144,7 +100,7 @@ impl SubstateTrait for Substate {
 
     // Let VM access storage from substate so that storage ownership can be
     // maintained without help from state.
-    fn set_storage(
+    pub fn set_storage(
         &mut self,
         state: &mut dyn StateOpsTrait,
         address: &AddressWithSpace,
@@ -153,47 +109,10 @@ impl SubstateTrait for Substate {
     ) -> DbResult<()> {
         state.set_storage(address, key, value)
     }
-
-    fn record_storage_occupy(&mut self, address: &Address, collaterals: u64) {
-        *self.storage_collateralized.entry(*address).or_insert(0) += collaterals;
-    }
-
-    fn touched(&mut self) -> &mut HashSet<AddressWithSpace> {
-        &mut self.touched
-    }
-
-    fn contracts_created(&self) -> &[AddressWithSpace] {
-        &self.contracts_created
-    }
-
-    fn contracts_created_mut(&mut self) -> &mut Vec<AddressWithSpace> {
-        &mut self.contracts_created
-    }
-
-    fn record_storage_release(&mut self, address: &Address, collaterals: u64) {
-        *self.storage_released.entry(*address).or_insert(0) += collaterals;
-    }
-
-    fn keys_for_collateral_changed(&self) -> HashSet<&Address> {
-        let affected_address1: HashSet<_> = self.storage_collateralized.keys().collect();
-        let affected_address2: HashSet<_> = self.storage_released.keys().collect();
-        affected_address1
-            .union(&affected_address2)
-            .cloned()
-            .collect()
-    }
-
-    fn suicides(&self) -> &HashSet<AddressWithSpace> {
-        &self.suicides
-    }
-
-    fn suicides_mut(&mut self) -> &mut HashSet<AddressWithSpace> {
-        &mut self.suicides
-    }
 }
 
 /// Get the cleanup mode object from this.
-pub fn cleanup_mode<'a>(substate: &'a mut dyn SubstateTrait, spec: &Spec) -> CleanupMode<'a> {
+pub fn cleanup_mode<'a>(substate: &'a mut Substate, spec: &Spec) -> CleanupMode<'a> {
     match (
         spec.kill_dust != CleanDustMode::Off,
         spec.no_empty,
@@ -201,7 +120,7 @@ pub fn cleanup_mode<'a>(substate: &'a mut dyn SubstateTrait, spec: &Spec) -> Cle
     ) {
         (false, false, _) => CleanupMode::ForceCreate,
         (false, true, false) => CleanupMode::NoEmpty,
-        (false, true, true) | (true, _, _) => CleanupMode::TrackTouched(substate.touched()),
+        (false, true, true) | (true, _, _) => CleanupMode::TrackTouched(&mut substate.touched),
     }
 }
 
