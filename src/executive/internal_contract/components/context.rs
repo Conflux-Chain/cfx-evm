@@ -27,13 +27,13 @@ impl<'a> InternalRefContext<'a> {
     pub fn log(
         &mut self,
         params: &ActionParams,
-        spec: &Spec,
+        _spec: &Spec,
         topics: Vec<H256>,
         data: Vec<u8>,
     ) -> vm::Result<()> {
         use primitives::log_entry::LogEntry;
 
-        if self.static_flag || self.callstack.in_reentrancy(spec) {
+        if self.static_flag {
             return Err(vm::Error::MutableCallInStaticContext);
         }
 
@@ -56,7 +56,7 @@ impl<'a> InternalRefContext<'a> {
     ) -> vm::Result<()> {
         let receiver = params.address.with_space(params.space);
         self.substate
-            .set_storage(self.state, &receiver, key, value, params.storage_owner)
+            .set_storage(self.state, &receiver, key, value)
             .map_err(|e| e.into())
     }
 

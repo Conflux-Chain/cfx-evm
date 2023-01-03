@@ -15,27 +15,25 @@ extern crate lazy_static;
 extern crate serde_json;
 
 pub mod account;
-pub mod block;
-pub mod block_header;
+mod block;
+mod block_header;
 pub mod block_number;
-pub mod epoch;
+mod epoch;
 pub mod filter;
 pub mod is_default;
 pub mod log_entry;
-pub mod pos;
+mod pos;
 pub mod receipt;
-pub mod state_root;
-pub mod static_bool;
+mod state_root;
+mod static_bool;
 pub mod storage;
 pub mod storage_key;
 pub mod transaction;
-pub mod transaction_index;
+mod transaction_index;
 
 pub use crate::{
-    account::{
-        Account, CodeInfo, DepositInfo, DepositList, SponsorInfo, VoteStakeInfo, VoteStakeList,
-    },
-    block::{Block, BlockNumber},
+    account::{Account, CodeInfo, VoteStakeInfo},
+    block::{Block, BlockNumber, BlockHeight},
     block_header::{BlockHeader, BlockHeaderBuilder},
     block_number::compute_block_number,
     epoch::{BlockHashOrEpochNumber, EpochId, EpochNumber, NULL_EPOCH},

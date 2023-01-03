@@ -293,27 +293,18 @@ impl SimpleExecutionTrait for DeployEip1820 {
                 "eip-1820 contract has been deployed.".to_string(),
             ));
         }
-        context.state.new_contract_with_admin(
+        context.state.new_contract(
             &address,
-            /* admin */ &Address::zero(),
             /* balance */ U256::zero(),
             /* nonce */ U256::one(),
             Some(STORAGE_LAYOUT_REGULAR_V0),
         )?;
         context
             .state
-            .init_code(&address, eip_1820::BYTE_CODE.clone(), Address::zero())?;
+            .init_code(&address, eip_1820::BYTE_CODE.clone())?;
         context.substate.contracts_created_mut().push(address);
         Ok(())
     }
-}
-
-pub fn is_call_create_sig(data: &[u8]) -> bool {
-    data == TransferToEVM::FUNC_SIG || data == CreateToEVM::FUNC_SIG || data == CallToEVM::FUNC_SIG
-}
-
-pub fn is_withdraw_sig(data: &[u8]) -> bool {
-    data == Withdraw::FUNC_SIG
 }
 
 #[test]

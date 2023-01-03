@@ -4,10 +4,9 @@
 
 use super::CleanupMode;
 use crate::evm::{CleanDustMode, Spec};
-use cfx_parameters::internal_contract_addresses::ADMIN_CONTROL_CONTRACT_ADDRESS;
 use cfx_state::{state_trait::StateOpsTrait, substate_trait::SubstateMngTrait, SubstateTrait};
 use cfx_statedb::Result as DbResult;
-use cfx_types::{Address, AddressSpaceUtil, AddressWithSpace, U256};
+use cfx_types::{Address, AddressWithSpace, U256};
 use primitives::LogEntry;
 use std::collections::{HashMap, HashSet};
 
@@ -66,32 +65,6 @@ impl CallStackInfo {
 
     pub fn contains_key(&self, key: &AddressWithSpace) -> bool {
         self.address_counter.contains_key(key)
-    }
-
-    pub fn in_reentrancy(&self, spec: &Spec) -> bool {
-        if spec.cip71 {
-            // After CIP-71, anti-reentrancy will closed.
-            false
-        } else {
-            // Consistent with old behaviour
-            // The old (unexpected) behaviour is equivalent to the top element
-            // is lost.
-            self.first_reentrancy_depth.map_or(false, |depth| {
-                (depth as isize) < self.call_stack_recipient_addresses.len() as isize - 1
-            })
-        }
-    }
-
-    pub fn contract_in_creation(&self) -> Option<&AddressWithSpace> {
-        if let [.., second_last, last] = self.call_stack_recipient_addresses.as_slice() {
-            if last.0 == ADMIN_CONTROL_CONTRACT_ADDRESS.with_native_space() && second_last.1 {
-                Some(&second_last.0)
-            } else {
-                None
-            }
-        } else {
-            None
-        }
     }
 }
 
@@ -177,9 +150,8 @@ impl SubstateTrait for Substate {
         address: &AddressWithSpace,
         key: Vec<u8>,
         value: U256,
-        owner: Address,
     ) -> DbResult<()> {
-        state.set_storage(address, key, value, owner)
+        state.set_storage(address, key, value)
     }
 
     fn record_storage_occupy(&mut self, address: &Address, collaterals: u64) {

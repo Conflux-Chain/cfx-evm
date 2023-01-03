@@ -14,11 +14,9 @@ use crate::{
     state::CallStackInfo,
     vm::{
         self, ActionParams, ActionValue, CallType, Context as ContextTrait, ContractCreateResult,
-        CreateContractAddress, CreateType, Env, Error, MessageCallResult, ReturnData, Spec,
-        TrapKind,
+        CreateContractAddress, CreateType, Env, MessageCallResult, ReturnData, Spec, TrapKind,
     },
 };
-use cfx_parameters::staking::{code_collateral_units, DRIPS_PER_STORAGE_COLLATERAL_UNIT};
 use cfx_state::{StateTrait, SubstateMngTrait, SubstateTrait};
 use cfx_types::{Address, AddressSpaceUtil, AddressWithSpace, Space, H256, U256};
 use primitives::transaction::UNSIGNED_SENDER;
@@ -30,9 +28,6 @@ pub struct OriginInfo {
     address: Address,
     /// This is the address of original sender of the transaction.
     original_sender: Address,
-    /// This is the address of account who will pay collateral for storage in
-    /// the whole execution.
-    storage_owner: Address,
     gas_price: U256,
     value: U256,
 }
@@ -43,7 +38,6 @@ impl OriginInfo {
         OriginInfo {
             address: params.address,
             original_sender: params.original_sender,
-            storage_owner: params.storage_owner,
             gas_price: params.gas_price,
             value: match params.value {
                 ActionValue::Transfer(val) | ActionValue::Apparent(val) => val,
@@ -141,18 +135,12 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
             address: self.local_part.origin.address,
             space: self.local_part.space,
         };
-        if self.is_static_or_reentrancy() {
+        if self.is_static() {
             Err(vm::Error::MutableCallInStaticContext)
         } else {
             self.local_part
                 .substate
-                .set_storage(
-                    self.state.as_mut_state_ops(),
-                    &caller,
-                    key,
-                    value,
-                    self.local_part.origin.storage_owner,
-                )
+                .set_storage(self.state.as_mut_state_ops(), &caller, key, value)
                 .map_err(Into::into)
         }
     }
@@ -232,13 +220,13 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
         // address. This should generally not happen. Unless we enable
         // account dust in future. We add this check just in case it
         // helps in future.
-        if self.local_part.space == Space::Native
-            && self.state.is_contract_with_code(&address_with_space)?
-        {
-            debug!("Contract address conflict!");
-            let err = Error::ConflictAddress(address.clone());
-            return Ok(Ok(ContractCreateResult::Failed(err)));
-        }
+        // if self.local_part.space == Space::Native
+        //     && self.state.is_contract_with_code(&address_with_space)?
+        // {
+        //     debug!("Contract address conflict!");
+        //     let err = Error::ConflictAddress(address.clone());
+        //     return Ok(Ok(ContractCreateResult::Failed(err)));
+        // }
 
         // prepare the params
         let params = ActionParams {
@@ -247,7 +235,6 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
             address: address.clone(),
             sender: self.local_part.origin.address.clone(),
             original_sender: self.local_part.origin.original_sender,
-            storage_owner: self.local_part.origin.storage_owner,
             gas: *gas,
             gas_price: self.local_part.origin.gas_price,
             value: ActionValue::Transfer(*value),
@@ -259,7 +246,7 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
             params_type: vm::ParamsType::Embedded,
         };
 
-        if !self.is_static_or_reentrancy() {
+        if !self.is_static() {
             if !self.local_part.spec.keep_unsigned_nonce || params.sender != UNSIGNED_SENDER {
                 self.state.inc_nonce(
                     &caller,
@@ -309,7 +296,6 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
             value: ActionValue::Apparent(self.local_part.origin.value),
             code_address: *code_address,
             original_sender: self.local_part.origin.original_sender,
-            storage_owner: self.local_part.origin.storage_owner,
             gas: *gas,
             gas_price: self.local_part.origin.gas_price,
             code,
@@ -374,7 +360,7 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
     fn log(&mut self, topics: Vec<H256>, data: &[u8]) -> vm::Result<()> {
         use primitives::log_entry::LogEntry;
 
-        if self.is_static_or_reentrancy() {
+        if self.is_static() {
             return Err(vm::Error::MutableCallInStaticContext);
         }
 
@@ -404,7 +390,6 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
             true if apply_state => {
                 let create_data_gas = self.local_part.spec.create_data_gas
                     * match self.local_part.space {
-                        Space::Native => 1,
                         Space::Ethereum => self.local_part.spec.evm_gas_ratio,
                     };
                 let return_cost = U256::from(data.len()) * create_data_gas;
@@ -415,24 +400,7 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
                     };
                 }
 
-                if self.local_part.space == Space::Native {
-                    let collateral_units_for_code = code_collateral_units(data.len());
-                    let collateral_in_drips =
-                        U256::from(collateral_units_for_code) * *DRIPS_PER_STORAGE_COLLATERAL_UNIT;
-                    debug!("ret()  collateral_for_code={:?}", collateral_in_drips);
-                    self.local_part.substate.record_storage_occupy(
-                        &self.local_part.origin.storage_owner,
-                        collateral_units_for_code,
-                    );
-                }
-
-                let owner = if self.local_part.space == Space::Native {
-                    self.local_part.origin.storage_owner
-                } else {
-                    Address::zero()
-                };
-
-                self.state.init_code(&caller, data.to_vec(), owner)?;
+                self.state.init_code(&caller, data.to_vec())?;
 
                 Ok(*gas - return_cost)
             }
@@ -446,7 +414,7 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
         tracer: &mut dyn VmObserve,
         account_start_nonce: U256,
     ) -> vm::Result<()> {
-        if self.is_static_or_reentrancy() {
+        if self.is_static() {
             return Err(vm::Error::MutableCallInStaticContext);
         }
 
@@ -514,10 +482,6 @@ impl<'a, 'b, Substate: SubstateMngTrait> ContextTrait for Context<'a, 'b, Substa
 
     fn is_static(&self) -> bool {
         self.local_part.static_flag
-    }
-
-    fn is_static_or_reentrancy(&self) -> bool {
-        self.local_part.static_flag || self.callstack.in_reentrancy(self.local_part.spec)
     }
 
     fn internal_ref(&mut self) -> InternalRefContext {

@@ -22,7 +22,6 @@ pub trait SubstateTrait {
         address: &AddressWithSpace,
         key: Vec<u8>,
         value: U256,
-        owner: Address,
     ) -> DbResult<()>;
 
     fn record_storage_occupy(&mut self, address: &Address, collaterals: u64);

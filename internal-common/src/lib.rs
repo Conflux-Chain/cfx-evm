@@ -6,7 +6,7 @@ pub struct StateRootWithAuxInfo;
 pub mod chain_id;
 
 pub mod debug {
-    use serde_derive::{Serialize, Deserialize};
+    use serde_derive::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct ComputeEpochDebugRecord;

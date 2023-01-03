@@ -199,8 +199,8 @@ impl<T: PreExecCheckConfTrait> PreExecCheckTrait for T {
     fn pre_execution_check(
         &self,
         params: &ActionParams,
-        call_stack: &CallStackInfo,
-        spec: &Spec,
+        _call_stack: &CallStackInfo,
+        _spec: &Spec,
     ) -> vm::Result<()> {
         if !Self::PAYABLE && !params.value.value().is_zero() {
             return Err(vm::Error::InternalContract(
@@ -208,9 +208,7 @@ impl<T: PreExecCheckConfTrait> PreExecCheckTrait for T {
             ));
         }
 
-        if Self::HAS_WRITE_OP
-            && (call_stack.in_reentrancy(spec) || params.call_type == CallType::StaticCall)
-        {
+        if Self::HAS_WRITE_OP && params.call_type == CallType::StaticCall {
             return Err(vm::Error::MutableCallInStaticContext);
         }
 

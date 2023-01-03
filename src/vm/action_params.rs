@@ -83,9 +83,6 @@ pub struct ActionParams {
     pub sender: Address,
     /// This is the address of original sender of the transaction.
     pub original_sender: Address,
-    /// This is the address of account who will pay collateral for storage in
-    /// the whole execution.
-    pub storage_owner: Address,
     /// Gas paid up front for transaction execution
     pub gas: U256,
     /// Gas price.

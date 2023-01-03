@@ -20,7 +20,6 @@ pub struct Machine {
     params: CommonParams,
     vm: VmFactory,
     builtins: Arc<BTreeMap<Address, Builtin>>,
-    builtins_evm: Arc<BTreeMap<Address, Builtin>>,
     internal_contracts: Arc<InternalContractMap>,
     spec_rules: Option<Box<SpecCreationRules>>,
 }
@@ -31,10 +30,7 @@ impl Machine {
         address: &AddressWithSpace,
         block_number: BlockNumber,
     ) -> Option<&Builtin> {
-        let builtins = match address.space {
-            Space::Native => &self.builtins,
-            Space::Ethereum => &self.builtins_evm,
-        };
+        let builtins = &self.builtins;
         builtins.get(&address.address).and_then(|b| {
             if b.is_active(block_number) {
                 Some(b)
@@ -87,7 +83,6 @@ pub fn new_machine(params: CommonParams, vm: VmFactory) -> Machine {
         params,
         vm,
         builtins: Arc::new(BTreeMap::new()),
-        builtins_evm: Arc::new(Default::default()),
         internal_contracts: Arc::new(InternalContractMap::default()),
         spec_rules: None,
     }
@@ -101,8 +96,7 @@ fn new_builtin_map(params: &CommonParams, space: Space) -> BTreeMap<Address, Bui
         Builtin::new(
             Box::new(Linear::new(3000, 0)),
             match space {
-                Space::Native => builtin_factory("ecrecover"),
-                Space::Ethereum => builtin_factory("ecrecover_evm"),
+                Space::Ethereum => builtin_factory("ecrecover"),
             },
             0,
         ),
@@ -167,15 +161,13 @@ fn new_builtin_map(params: &CommonParams, space: Space) -> BTreeMap<Address, Bui
 }
 
 pub fn new_machine_with_builtin(params: CommonParams, vm: VmFactory) -> Machine {
-    let builtin = new_builtin_map(&params, Space::Native);
-    let builtin_evm = new_builtin_map(&params, Space::Ethereum);
+    let builtins = new_builtin_map(&params, Space::Ethereum);
 
     let internal_contracts = InternalContractMap::new(&params);
     Machine {
         params,
         vm,
-        builtins: Arc::new(builtin),
-        builtins_evm: Arc::new(builtin_evm),
+        builtins: Arc::new(builtins),
         internal_contracts: Arc::new(internal_contracts),
         spec_rules: None,
     }

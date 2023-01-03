@@ -15,7 +15,7 @@ use cfx_parameters::{
     },
 };
 use cfx_types::{AllChainID, U256, U512};
-use primitives::{block::BlockHeight, BlockNumber};
+use primitives::{BlockHeight, BlockNumber};
 use std::collections::BTreeMap;
 
 type Bytes = Vec<u8>;

@@ -23,11 +23,15 @@ pub mod access_mode {
     pub struct Write {}
 
     impl AccessMode for Read {
-        fn is_read_only() -> bool { return true; }
+        fn is_read_only() -> bool {
+            return true;
+        }
     }
 
     impl AccessMode for Write {
-        fn is_read_only() -> bool { return false; }
+        fn is_read_only() -> bool {
+            return false;
+        }
     }
 }
 

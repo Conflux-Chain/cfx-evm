@@ -20,15 +20,11 @@ use parity_crypto::Keccak256 as _;
 use secp256k1::key;
 use std::fmt;
 
-pub fn public_to_address(public: &Public, type_nibble: bool) -> Address {
+pub fn public_to_address(public: &Public) -> Address {
     let hash = public.keccak256();
     let mut result = Address::zero();
     result.as_bytes_mut().copy_from_slice(&hash[12..]);
-    // In Conflux, we reserve the first four bits to indicate the type of the
-    // address. For user address, the first four bits will be 0x1.
-    if type_nibble {
-        result.set_user_account_type_bits();
-    }
+    result.set_user_account_type_bits();
     result
 }
 
@@ -97,11 +93,7 @@ impl KeyPair {
     }
 
     pub fn address(&self) -> Address {
-        public_to_address(&self.public, true)
-    }
-
-    pub fn evm_address(&self) -> Address {
-        public_to_address(&self.public, false)
+        public_to_address(&self.public)
     }
 }
 

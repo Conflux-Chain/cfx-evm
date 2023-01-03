@@ -9,6 +9,5 @@ mod utils;
 
 pub use self::{
     components::{InterfaceTrait, InternalContractMap, InternalContractTrait, InternalRefContext},
-    contracts::cross_space::{is_call_create_sig, is_withdraw_sig},
     impls::admin::suicide,
 };

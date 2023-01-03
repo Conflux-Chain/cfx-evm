@@ -238,28 +238,6 @@ pub struct NativeTransaction {
     pub data: Bytes,
 }
 
-impl NativeTransaction {
-    /// Specify the sender; this won't survive the serialize/deserialize
-    /// process, but can be cloned.
-    pub fn fake_sign(self, from: AddressWithSpace) -> SignedTransaction {
-        SignedTransaction {
-            transaction: TransactionWithSignature {
-                transaction: TransactionWithSignatureSerializePart {
-                    unsigned: Transaction::Native(self),
-                    r: U256::one(),
-                    s: U256::one(),
-                    v: 0,
-                },
-                hash: H256::zero(),
-                rlp_size: None,
-            }
-            .compute_hash(),
-            sender: from.address,
-            public: None,
-        }
-    }
-}
-
 /// Replay protection logic for v part of transaction's signature
 pub mod eip155_signature {
     /// Adds chain id into v
@@ -408,19 +386,12 @@ impl Encodable for Eip155Transaction {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Transaction {
-    Native(NativeTransaction),
     Ethereum(Eip155Transaction),
 }
 
 impl Default for Transaction {
     fn default() -> Self {
-        Transaction::Native(Default::default())
-    }
-}
-
-impl From<NativeTransaction> for Transaction {
-    fn from(tx: NativeTransaction) -> Self {
-        Self::Native(tx)
+        Transaction::Ethereum(Default::default())
     }
 }
 
@@ -434,7 +405,6 @@ macro_rules! access_common_ref {
     ($field: ident, $ty: ident) => {
         pub fn $field(&self) -> &$ty {
             match self {
-                Transaction::Native(tx) => &tx.$field,
                 Transaction::Ethereum(tx) => &tx.$field,
             }
         }
@@ -446,7 +416,6 @@ macro_rules! access_common {
     ($field: ident, $ty: ident) => {
         pub fn $field(&self) -> $ty {
             match self {
-                Transaction::Native(tx) => tx.$field,
                 Transaction::Ethereum(tx) => tx.$field,
             }
         }
@@ -467,21 +436,12 @@ impl Transaction {
 
     pub fn chain_id(&self) -> Option<u32> {
         match self {
-            Transaction::Native(tx) => Some(tx.chain_id),
             Transaction::Ethereum(tx) => tx.chain_id,
-        }
-    }
-
-    pub fn storage_limit(&self) -> Option<u64> {
-        match self {
-            Transaction::Native(tx) => Some(tx.storage_limit),
-            Transaction::Ethereum(_tx) => None,
         }
     }
 
     pub fn nonce_mut(&mut self) -> &mut U256 {
         match self {
-            Transaction::Native(tx) => &mut tx.nonce,
             Transaction::Ethereum(tx) => &mut tx.nonce,
         }
     }
@@ -494,9 +454,6 @@ impl Transaction {
     pub fn signature_hash(&self) -> H256 {
         let mut s = RlpStream::new();
         match self {
-            Transaction::Native(tx) => {
-                s.append(tx);
-            }
             Transaction::Ethereum(tx) => {
                 s.append(tx);
             }
@@ -506,7 +463,6 @@ impl Transaction {
 
     pub fn space(&self) -> Space {
         match self {
-            Transaction::Native(_) => Space::Native,
             Transaction::Ethereum(_) => Space::Ethereum,
         }
     }
@@ -560,13 +516,6 @@ pub struct TransactionWithSignatureSerializePart {
 impl Encodable for TransactionWithSignatureSerializePart {
     fn rlp_append(&self, s: &mut RlpStream) {
         match self.unsigned {
-            Transaction::Native(ref tx) => {
-                s.begin_list(4);
-                s.append(tx);
-                s.append(&self.v);
-                s.append(&self.r);
-                s.append(&self.s);
-            }
             Transaction::Ethereum(ref tx) => {
                 let Eip155Transaction {
                     nonce,
@@ -599,18 +548,6 @@ impl Encodable for TransactionWithSignatureSerializePart {
 impl Decodable for TransactionWithSignatureSerializePart {
     fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         match rlp.item_count()? {
-            4 => {
-                let unsigned: NativeTransaction = rlp.val_at(0)?;
-                let v: u8 = rlp.val_at(1)?;
-                let r: U256 = rlp.val_at(2)?;
-                let s: U256 = rlp.val_at(3)?;
-                Ok(TransactionWithSignatureSerializePart {
-                    unsigned: Transaction::Native(unsigned),
-                    v,
-                    r,
-                    s,
-                })
-            }
             9 => {
                 let nonce: U256 = rlp.val_at(0)?;
                 let gas_price: U256 = rlp.val_at(1)?;
@@ -833,7 +770,7 @@ impl SignedTransaction {
                 public: None,
             }
         } else {
-            let sender = public_to_address(&public, transaction.space() == Space::Native);
+            let sender = public_to_address(&public);
             SignedTransaction {
                 transaction,
                 sender,
@@ -851,8 +788,7 @@ impl SignedTransaction {
     }
 
     pub fn set_public(&mut self, public: Public) {
-        let type_nibble = self.unsigned.space() == Space::Native;
-        self.sender = public_to_address(&public, type_nibble);
+        self.sender = public_to_address(&public);
         self.public = Some(public);
     }
 
@@ -884,10 +820,6 @@ impl SignedTransaction {
 
     pub fn gas_limit(&self) -> &U256 {
         &self.transaction.gas()
-    }
-
-    pub fn storage_limit(&self) -> Option<u64> {
-        self.transaction.storage_limit()
     }
 
     pub fn rlp_size(&self) -> usize {

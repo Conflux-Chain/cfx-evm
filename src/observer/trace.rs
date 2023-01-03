@@ -5,26 +5,21 @@
 use super::AddressPocket;
 use crate::{
     bytes::Bytes,
-    executive::{
-        internal_contract::{is_call_create_sig, is_withdraw_sig},
-        ExecutiveResult,
-    },
+    executive::ExecutiveResult,
     observer::trace_filter::TraceFilter,
     vm::{ActionParams, CallType, CreateType, Result as vmResult},
 };
 // use cfx_internal_common::{DatabaseDecodable, DatabaseEncodable};
-use cfx_parameters::internal_contract_addresses::CROSS_SPACE_CONTRACT_ADDRESS;
-use cfx_types::{Address, AddressWithSpace, Bloom, BloomInput, Space, H256, U256, U64};
+use cfx_types::{Address, Bloom, BloomInput, Space, H256, U256, U64};
 use malloc_size_of_derive::MallocSizeOf;
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use rlp_derive::{RlpDecodable, RlpEncodable};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
-use solidity_abi::ABIEncodable;
 use strum_macros::EnumDiscriminants;
 
 /// Description of a _call_ action, either a `CALL` operation or a message
 /// transaction.
-#[derive(Debug, Clone, PartialEq, RlpEncodable, Serialize)]
+#[derive(Debug, Clone, PartialEq, RlpEncodable, RlpDecodable, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Call {
     /// The space
@@ -41,32 +36,6 @@ pub struct Call {
     pub input: Bytes,
     /// The type of the call.
     pub call_type: CallType,
-}
-
-impl Decodable for Call {
-    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
-        match rlp.item_count()? {
-            6 => Ok(Call {
-                space: Space::Native,
-                from: rlp.val_at(0)?,
-                to: rlp.val_at(1)?,
-                value: rlp.val_at(2)?,
-                gas: rlp.val_at(3)?,
-                input: rlp.val_at(4)?,
-                call_type: rlp.val_at(5)?,
-            }),
-            7 => Ok(Call {
-                space: rlp.val_at(0)?,
-                from: rlp.val_at(1)?,
-                to: rlp.val_at(2)?,
-                value: rlp.val_at(3)?,
-                gas: rlp.val_at(4)?,
-                input: rlp.val_at(5)?,
-                call_type: rlp.val_at(6)?,
-            }),
-            _ => Err(DecoderError::RlpInvalidLength),
-        }
-    }
 }
 
 impl From<ActionParams> for Call {
@@ -186,7 +155,7 @@ impl From<&vmResult<ExecutiveResult>> for CallResult {
 
 /// Description of a _create_ action, either a `CREATE` operation or a create
 /// transaction.
-#[derive(Debug, Clone, PartialEq, RlpEncodable, Serialize)]
+#[derive(Debug, Clone, PartialEq, RlpEncodable, RlpDecodable, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Create {
     /// Space
@@ -201,30 +170,6 @@ pub struct Create {
     pub init: Bytes,
     /// The create type `CREATE` or `CREATE2`
     pub create_type: CreateType,
-}
-
-impl Decodable for Create {
-    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
-        match rlp.item_count()? {
-            5 => Ok(Create {
-                space: Space::Native,
-                from: rlp.val_at(0)?,
-                value: rlp.val_at(1)?,
-                gas: rlp.val_at(2)?,
-                init: rlp.val_at(3)?,
-                create_type: rlp.val_at(4)?,
-            }),
-            6 => Ok(Create {
-                space: rlp.val_at(0)?,
-                from: rlp.val_at(1)?,
-                value: rlp.val_at(2)?,
-                gas: rlp.val_at(3)?,
-                init: rlp.val_at(4)?,
-                create_type: rlp.val_at(5)?,
-            }),
-            _ => Err(DecoderError::RlpInvalidLength),
-        }
-    }
 }
 
 impl From<ActionParams> for Create {
@@ -678,252 +623,6 @@ impl Into<Vec<TransactionExecTraces>> for BlockExecTraces {
     fn into(self) -> Vec<TransactionExecTraces> {
         self.0
     }
-}
-
-// impl DatabaseDecodable for BlockExecTraces {
-//     fn db_decode(bytes: &[u8]) -> Result<Self, DecoderError> {
-//         rlp::decode(bytes)
-//     }
-// }
-
-// impl DatabaseEncodable for BlockExecTraces {
-//     fn db_encode(&self) -> Bytes { rlp::encode(self) }
-// }
-
-pub fn recover_phantom_trace_for_withdraw(
-    mut tx_traces: impl Iterator<Item = ExecTrace>,
-) -> Result<Vec<TransactionExecTraces>, String> {
-    let trace = match tx_traces.next() {
-        Some(t) => t,
-        None => {
-            error!("Unable to recover phantom trace: no more traces (expected withdraw)");
-            return Err(
-                "Unable to recover phantom trace: no more traces (expected withdraw)".into(),
-            );
-        }
-    };
-
-    match trace.action {
-        Action::InternalTransferAction(InternalTransferAction {
-            from:
-                AddressPocket::Balance(AddressWithSpace {
-                    address: from,
-                    space: Space::Ethereum,
-                }),
-            to:
-                AddressPocket::Balance(AddressWithSpace {
-                    address: _,
-                    space: Space::Native,
-                }),
-            value,
-        }) => {
-            return Ok(vec![TransactionExecTraces(vec![
-                ExecTrace {
-                    action: Action::Call(Call {
-                        space: Space::Ethereum,
-                        from,
-                        to: Address::zero(),
-                        value,
-                        gas: 0.into(),
-                        input: Default::default(),
-                        call_type: CallType::Call,
-                    }),
-                    valid: true,
-                },
-                ExecTrace {
-                    action: Action::CallResult(CallResult {
-                        outcome: Outcome::Success,
-                        gas_left: 0.into(),
-                        return_data: Default::default(),
-                    }),
-                    valid: true,
-                },
-            ])]);
-        }
-
-        _ => {
-            error!("Unable to recover phantom trace: unexpected trace type while processing withdraw: {:?}", trace);
-            return Err(
-                "Unable to recover phantom trace: unexpected trace type while processing withdraw"
-                    .into(),
-            );
-        }
-    }
-}
-
-pub fn recover_phantom_trace_for_call(
-    tx_traces: &mut impl Iterator<Item = ExecTrace>,
-    original_tx_hash: H256,
-    cross_space_nonce: u32,
-) -> Result<Vec<TransactionExecTraces>, String> {
-    let mut traces = vec![];
-
-    let trace = match tx_traces.next() {
-        Some(t) => t,
-        None => {
-            error!("Unable to recover phantom trace: no more traces (expected balance transfer) hash={:?}, nonce={:?}", original_tx_hash, cross_space_nonce);
-            return Err(
-                "Unable to recover phantom trace: no more traces (expected balance transfer)"
-                    .into(),
-            );
-        }
-    };
-
-    match trace.action {
-        Action::InternalTransferAction(InternalTransferAction {
-            from: _,
-            to:
-                AddressPocket::Balance(AddressWithSpace {
-                    address,
-                    space: Space::Ethereum,
-                }),
-            value,
-        }) => {
-            let input = (original_tx_hash, U256::from(cross_space_nonce)).abi_encode();
-
-            traces.push(TransactionExecTraces(vec![
-                ExecTrace {
-                    action: Action::Call(Call {
-                        space: Space::Ethereum,
-                        from: Address::zero(),
-                        to: address,
-                        value,
-                        gas: 0.into(),
-                        input,
-                        call_type: CallType::Call,
-                    }),
-                    valid: true,
-                },
-                ExecTrace {
-                    action: Action::CallResult(CallResult {
-                        outcome: Outcome::Success,
-                        gas_left: 0.into(),
-                        return_data: Default::default(),
-                    }),
-                    valid: true,
-                },
-            ]));
-        }
-
-        _ => {
-            error!("Unable to recover phantom trace: unexpected trace type while processing call (hash={:?}, nonce={:?}): {:?}", original_tx_hash, cross_space_nonce, trace);
-            return Err(
-                "Unable to recover phantom trace: unexpected trace type while processing call"
-                    .into(),
-            );
-        }
-    }
-
-    let mut stack_depth = 0;
-    let mut phantom_traces = vec![];
-
-    loop {
-        let mut trace = match tx_traces.next() {
-            Some(t) => t,
-            None => {
-                error!("Unable to recover phantom trace: no more traces (expected eSpace trace entry) hash={:?}, nonce={:?}", original_tx_hash, cross_space_nonce);
-                return Err(
-                    "Unable to recover phantom trace: no more traces (expected eSpace trace entry)"
-                        .into(),
-                );
-            }
-        };
-
-        // phantom traces have 0 gas
-        match trace.action {
-            Action::Call(Call { ref mut gas, .. }) => {
-                *gas = 0.into();
-            }
-            Action::Create(Create { ref mut gas, .. }) => {
-                *gas = 0.into();
-            }
-            Action::CallResult(CallResult {
-                ref mut gas_left, ..
-            }) => {
-                *gas_left = 0.into();
-            }
-            Action::CreateResult(CreateResult {
-                ref mut gas_left, ..
-            }) => {
-                *gas_left = 0.into();
-            }
-            Action::InternalTransferAction(InternalTransferAction { .. }) => {}
-        }
-
-        phantom_traces.push(trace);
-
-        match phantom_traces.last().as_ref().unwrap().action {
-            Action::Call(_) | Action::Create(_) => {
-                stack_depth += 1;
-            }
-            Action::CallResult(_) | Action::CreateResult(_) => {
-                stack_depth -= 1;
-
-                if stack_depth == 0 {
-                    break;
-                }
-            }
-            _ => {}
-        }
-    }
-
-    traces.push(TransactionExecTraces(phantom_traces));
-    Ok(traces)
-}
-
-pub fn recover_phantom_traces(
-    tx_traces: TransactionExecTraces,
-    original_tx_hash: H256,
-) -> Result<Vec<TransactionExecTraces>, String> {
-    let mut traces: Vec<TransactionExecTraces> = vec![];
-    let mut traces_iter = tx_traces.0.into_iter();
-    let mut cross_space_nonce = 0u32;
-
-    loop {
-        let trace = match traces_iter.next() {
-            Some(t) => t,
-            None => break,
-        };
-
-        match trace.action {
-            Action::Call(Call {
-                space: Space::Native,
-                to,
-                call_type: CallType::Call,
-                input,
-                ..
-            }) if to == *CROSS_SPACE_CONTRACT_ADDRESS
-                && trace.valid
-                && is_call_create_sig(&input[0..4]) =>
-            {
-                let phantom_traces = recover_phantom_trace_for_call(
-                    &mut traces_iter,
-                    original_tx_hash,
-                    cross_space_nonce,
-                )?;
-
-                traces.extend(phantom_traces);
-                cross_space_nonce += 1;
-            }
-            Action::Call(Call {
-                space: Space::Native,
-                to,
-                call_type: CallType::Call,
-                input,
-                ..
-            }) if to == *CROSS_SPACE_CONTRACT_ADDRESS
-                && trace.valid
-                && is_withdraw_sig(&input[0..4]) =>
-            {
-                let phantom_traces = recover_phantom_trace_for_withdraw(&mut traces_iter)?;
-
-                traces.extend(phantom_traces);
-            }
-            _ => {}
-        }
-    }
-
-    Ok(traces)
 }
 
 #[cfg(test)]

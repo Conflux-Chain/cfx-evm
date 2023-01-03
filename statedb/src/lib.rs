@@ -10,8 +10,8 @@ extern crate error_chain;
 extern crate log;
 
 mod error;
-mod statedb_ext;
 mod impls;
+mod statedb_ext;
 
 #[cfg(test)]
 mod tests;

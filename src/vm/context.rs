@@ -66,12 +66,6 @@ pub enum CreateContractAddress {
     /// Address is calculated from sender and nonce. Ethereum
     /// `create` scheme.
     FromSenderNonce,
-    /// Address is calculated from sender, nonce, and code hash. Conflux
-    /// `create` scheme.
-    FromSenderNonceAndCodeHash,
-    /// Address is calculated from block_hash, sender, nonce and code_hash.
-    /// Potential new Conflux `create` scheme when kill_dust is enabled.
-    FromBlockNumberSenderNonceAndCodeHash,
     /// Address is calculated from sender, salt and code hash. Conflux and
     /// Ethereum `create2` scheme.
     FromSenderSaltAndCodeHash(H256),
@@ -194,9 +188,6 @@ pub trait Context {
 
     /// Check if running in static context.
     fn is_static(&self) -> bool;
-
-    /// Check if running in static context or reentrancy context
-    fn is_static_or_reentrancy(&self) -> bool;
 
     // TODO: Separate this interface to another trait maybe.
     fn internal_ref(&mut self) -> InternalRefContext;

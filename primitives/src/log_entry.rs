@@ -28,18 +28,11 @@ pub struct LogEntry {
 impl rlp::Encodable for LogEntry {
     fn rlp_append(&self, s: &mut RlpStream) {
         match self.space {
-            Space::Native => {
+            Space::Ethereum => {
                 s.begin_list(3);
                 s.append(&self.address);
                 s.append_list(&self.topics);
                 s.append(&self.data);
-            }
-            Space::Ethereum => {
-                s.begin_list(4);
-                s.append(&self.address);
-                s.append_list(&self.topics);
-                s.append(&self.data);
-                s.append(&self.space);
             }
         }
     }
@@ -55,13 +48,7 @@ impl rlp::Decodable for LogEntry {
                 address: rlp.val_at(0)?,
                 topics: rlp.list_at(1)?,
                 data: rlp.val_at(2)?,
-                space: Space::Native,
-            }),
-            4 => Ok(LogEntry {
-                address: rlp.val_at(0)?,
-                topics: rlp.list_at(1)?,
-                data: rlp.val_at(2)?,
-                space: rlp.val_at(3)?,
+                space: Space::Ethereum,
             }),
             _ => Err(rlp::DecoderError::RlpInvalidLength),
         }

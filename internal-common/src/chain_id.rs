@@ -7,7 +7,9 @@ pub struct ChainIdParamsDeprecated {
 
 impl ChainIdParamsDeprecated {
     /// The function return the chain_id with given parameters
-    pub fn get_chain_id(&self, _epoch_number: u64) -> u32 { self.chain_id }
+    pub fn get_chain_id(&self, _epoch_number: u64) -> u32 {
+        self.chain_id
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -21,7 +23,8 @@ pub type ChainIdParamsOneChainInner = ChainIdParamsInnerGeneric<u32>;
 pub type ChainIdParams = Arc<RwLock<ChainIdParamsInner>>;
 
 impl<T> ChainIdParamsInnerGeneric<T>
-where T: Clone + Debug + Default + PartialEq + Encodable + Decodable + Copy
+where
+    T: Clone + Debug + Default + PartialEq + Encodable + Decodable + Copy,
 {
     /// The function return the chain_id with given parameters
     pub fn get_chain_id(&self, epoch_number: u64) -> T {
@@ -43,8 +46,7 @@ where T: Clone + Debug + Default + PartialEq + Encodable + Decodable + Copy
         // Sub-array check. One height to epoch id map must be a sub-array of
         // another.
         let min_len = min(self.heights.len(), other.heights.len());
-        let sub_array_check = other.heights[0..min_len]
-            == self.heights[0..min_len]
+        let sub_array_check = other.heights[0..min_len] == self.heights[0..min_len]
             && other.chain_ids[0..min_len] == self.chain_ids[0..min_len];
 
         if sub_array_check {
@@ -69,11 +71,12 @@ impl ChainIdParamsOneChainInner {
             .parse::<toml::Value>()
             .map_err(|e| format!("{}", e))?;
         if let toml::Value::Table(table) = &value {
-            if let Some(height_to_chain_ids) = table.get("height_to_chain_ids")
-            {
+            if let Some(height_to_chain_ids) = table.get("height_to_chain_ids") {
                 if let toml::Value::Array(array) = height_to_chain_ids {
                     if array.len() == 0 {
-                        return Err(String::from("Invalid ChainIdParams config format: height_to_chain_ids is empty"));
+                        return Err(String::from(
+                            "Invalid ChainIdParams config format: height_to_chain_ids is empty",
+                        ));
                     }
                     let mut used_chain_ids = BTreeSet::new();
                     for element in array {
@@ -90,9 +93,7 @@ impl ChainIdParamsOneChainInner {
                                 if used_chain_ids.contains(chain_id) {
                                     return Err(String::from("Invalid ChainIdParams config format: chain_id must be pairwise different"));
                                 }
-                                if *chain_id < 0
-                                    || *chain_id > std::u32::MAX as i64
-                                {
+                                if *chain_id < 0 || *chain_id > std::u32::MAX as i64 {
                                     return Err(String::from("Invalid ChainIdParams config format: chain_id out of range for u32"));
                                 }
                                 parsed.heights.push(*height as u64);
@@ -104,13 +105,19 @@ impl ChainIdParamsOneChainInner {
                         }
                     }
                 } else {
-                    return Err(String::from("Invalid ChainIdParams config format: height_to_chain_ids is not an array"));
+                    return Err(String::from(
+                        "Invalid ChainIdParams config format: height_to_chain_ids is not an array",
+                    ));
                 }
             } else {
-                return Err(String::from("Invalid ChainIdParams config format: height_to_chain_ids not found"));
+                return Err(String::from(
+                    "Invalid ChainIdParams config format: height_to_chain_ids not found",
+                ));
             }
             if parsed.heights[0] != 0 {
-                return Err(String::from("Invalid ChainIdParams config format: height must start from 0"));
+                return Err(String::from(
+                    "Invalid ChainIdParams config format: height must start from 0",
+                ));
             }
             Ok(parsed)
         } else {
@@ -124,21 +131,6 @@ impl ChainIdParamsOneChainInner {
 impl ChainIdParamsInner {
     pub fn new_simple(chain_id: AllChainID) -> ChainIdParams {
         Arc::new(RwLock::new(Self::new_inner(chain_id)))
-    }
-
-    pub fn new_from_inner(x: &Self) -> ChainIdParams {
-        Arc::new(RwLock::new(x.clone()))
-    }
-
-    pub fn to_native_space_params(&self) -> ChainIdParamsOneChainInner {
-        ChainIdParamsOneChainInner {
-            heights: self.heights.clone(),
-            chain_ids: self
-                .chain_ids
-                .iter()
-                .map(|x| x.in_native_space())
-                .collect(),
-        }
     }
 }
 
@@ -158,8 +150,7 @@ mod test {
 
     #[test]
     fn test_parse_config_str() {
-        let config_str =
-            "height_to_chain_ids = [[0, 0], [10000, 1], [20000, 2], [30000, 3]]";
+        let config_str = "height_to_chain_ids = [[0, 0], [10000, 1], [20000, 2], [30000, 3]]";
         let config = ChainIdParamsInner::parse_config_str(config_str).unwrap();
         assert_eq!(
             config,
@@ -202,8 +193,7 @@ mod test {
 
     #[test]
     fn test_chain_id_at_height() {
-        let config_str =
-            "height_to_chain_ids = [[0, 0], [10000, 1], [20000, 2], [30000, 3]]";
+        let config_str = "height_to_chain_ids = [[0, 0], [10000, 1], [20000, 2], [30000, 3]]";
         let config = ChainIdParamsInner::parse_config_str(config_str).unwrap();
         assert_eq!(config.get_chain_id(0), 0);
         assert_eq!(config.get_chain_id(1), 0);
@@ -236,15 +226,14 @@ mod test {
         let incompatible_config_1 = ChainIdParamsInner::parse_config_str(
             "height_to_chain_ids = [[0, 0], [10000, 1], [20000, 2], [30000, 4]]",
         )
-            .unwrap();
+        .unwrap();
         let incompatible_config_2 = ChainIdParamsInner::parse_config_str(
             "height_to_chain_ids = [[0, 0], [10000, 1], [20000, 2], [25000, 3]]",
         )
-            .unwrap();
-        let incompatible_config_3 = ChainIdParamsInner::parse_config_str(
-            "height_to_chain_ids = [[0, 0], [10000, 1]]",
-        )
         .unwrap();
+        let incompatible_config_3 =
+            ChainIdParamsInner::parse_config_str("height_to_chain_ids = [[0, 0], [10000, 1]]")
+                .unwrap();
 
         assert!(config.matches(&compatible_config_1, epoch_number - 1));
         assert!(!config.matches(&compatible_config_1, epoch_number));
@@ -259,5 +248,5 @@ mod test {
 use cfx_types::AllChainID;
 use parking_lot::RwLock;
 use rlp::{Decodable, Encodable};
-use rlp_derive::{RlpDecodable,RlpEncodable};
+use rlp_derive::{RlpDecodable, RlpEncodable};
 use std::{cmp::min, collections::BTreeSet, fmt::Debug, sync::Arc};

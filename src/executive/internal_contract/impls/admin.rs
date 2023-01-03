@@ -5,18 +5,10 @@
 use crate::{
     observer::{AddressPocket, VmObserve},
     state::cleanup_mode,
-    vm::{self, ActionParams, Spec},
+    vm::{self, Spec},
 };
 use cfx_state::{state_trait::StateOpsTrait, SubstateTrait};
-use cfx_types::{
-    address_util::AddressUtil, Address, AddressSpaceUtil, AddressWithSpace, Space, U256,
-};
-
-use super::super::components::InternalRefContext;
-
-fn available_admin_address(_spec: &Spec, address: &Address) -> bool {
-    address.is_user_account_address() || address.is_null_address()
-}
+use cfx_types::{AddressWithSpace, U256};
 
 /// The Actual Implementation of `suicide`.
 /// The contract which has non zero `collateral_for_storage` cannot suicide,
@@ -37,10 +29,7 @@ pub fn suicide(
     substate.suicides_mut().insert(contract_address.clone());
     let balance = state.balance(contract_address)?;
 
-    if refund_address == contract_address
-        || (!spec.is_valid_address(&refund_address.address)
-            && refund_address.space == Space::Native)
-    {
+    if refund_address == contract_address {
         tracer.trace_internal_transfer(
             AddressPocket::Balance(*contract_address),
             AddressPocket::MintBurn,
@@ -53,9 +42,6 @@ pub fn suicide(
             &mut cleanup_mode(substate, spec),
         )?;
         state.subtract_total_issued(balance);
-        if contract_address.space == Space::Ethereum {
-            state.subtract_total_evm_tokens(balance);
-        }
     } else {
         trace!(target: "context", "Destroying {} -> {} (xfer: {})", contract_address.address, refund_address.address, balance);
         tracer.trace_internal_transfer(
@@ -73,73 +59,4 @@ pub fn suicide(
     }
 
     Ok(())
-}
-
-/// Implementation of `set_admin(address,address)`.
-/// The input should consist of 20 bytes `contract_address` + 20 bytes
-/// `new_admin_address`
-pub fn set_admin(
-    contract_address: Address,
-    new_admin_address: Address,
-    params: &ActionParams,
-    context: &mut InternalRefContext,
-) -> vm::Result<()> {
-    let requester = &params.sender;
-    debug!(
-        "set_admin requester {:?} contract {:?}, \
-         new_admin {:?}, contract_in_creation {:?}",
-        requester,
-        contract_address,
-        new_admin_address,
-        context.callstack.contract_in_creation(),
-    );
-
-    let clear_admin_in_create = context.callstack.contract_in_creation()
-        == Some(&contract_address.with_native_space())
-        && new_admin_address.is_null_address();
-
-    if context.is_contract_address(&contract_address)?
-        && context.state.exists(&contract_address.with_native_space())?
-        // Allow set admin if requester matches or in contract creation to clear admin.
-        && (context.state.admin(&contract_address)?.eq(requester)
-        || clear_admin_in_create)
-        // Only allow user account to be admin, if not to clear admin.
-        && available_admin_address(&context.spec, &new_admin_address)
-    {
-        debug!("set_admin to {:?}", new_admin_address);
-        // Admin is cleared by set new_admin_address to null address.
-        context
-            .state
-            .set_admin(&contract_address, &new_admin_address)?;
-    }
-    Ok(())
-}
-
-/// Implementation of `destroy(address)`.
-/// The input should consist of 20 bytes `contract_address`
-pub fn destroy(
-    contract_address: Address,
-    params: &ActionParams,
-    state: &mut dyn StateOpsTrait,
-    spec: &Spec,
-    substate: &mut dyn SubstateTrait,
-    tracer: &mut dyn VmObserve,
-) -> vm::Result<()> {
-    debug!("contract_address={:?}", contract_address);
-
-    let requester = &params.sender;
-    let admin = state.admin(&contract_address)?;
-    if admin == *requester {
-        suicide(
-            &contract_address.with_native_space(),
-            &admin.with_native_space(),
-            state,
-            spec,
-            substate,
-            tracer,
-            spec.account_start_nonce,
-        )
-    } else {
-        Ok(())
-    }
 }

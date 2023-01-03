@@ -86,10 +86,6 @@ impl CreateType {
     pub fn from_address_scheme(address: &CreateContractAddress) -> CreateType {
         match address {
             CreateContractAddress::FromSenderNonce => CreateType::CREATE,
-            CreateContractAddress::FromSenderNonceAndCodeHash => CreateType::CREATE,
-            CreateContractAddress::FromBlockNumberSenderNonceAndCodeHash => {
-                unreachable!("Inactivate address scheme")
-            }
             CreateContractAddress::FromSenderSaltAndCodeHash(_) => CreateType::CREATE2,
         }
     }

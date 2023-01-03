@@ -60,13 +60,13 @@ impl TransactionOutcome {
     pub fn in_space(&self, space: Space) -> u8 {
         match (space, self) {
             // Conflux
-            (Space::Native, TransactionOutcome::Success) => TRANSACTION_OUTCOME_SUCCESS,
-            (Space::Native, TransactionOutcome::Failure) => {
-                TRANSACTION_OUTCOME_EXCEPTION_WITH_NONCE_BUMPING
-            }
-            (Space::Native, TransactionOutcome::Skipped) => {
-                TRANSACTION_OUTCOME_EXCEPTION_WITHOUT_NONCE_BUMPING
-            }
+            // (Space::Native, TransactionOutcome::Success) => TRANSACTION_OUTCOME_SUCCESS,
+            // (Space::Native, TransactionOutcome::Failure) => {
+            //     TRANSACTION_OUTCOME_EXCEPTION_WITH_NONCE_BUMPING
+            // }
+            // (Space::Native, TransactionOutcome::Skipped) => {
+            //     TRANSACTION_OUTCOME_EXCEPTION_WITHOUT_NONCE_BUMPING
+            // }
 
             // EVM
             (Space::Ethereum, TransactionOutcome::Success) => EVM_SPACE_SUCCESS,

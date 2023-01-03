@@ -2,12 +2,9 @@
 // Conflux is free software and distributed under GNU General Public License.
 // See http://www.gnu.org/licenses/
 
-mod admin;
 mod context;
 pub(super) mod cross_space;
 mod future;
-mod sponsor;
-mod staking;
 pub(super) mod system_storage;
 
 mod preludes {
@@ -47,9 +44,6 @@ mod preludes {
 /// internal contract in the genesis block of test mode.
 pub fn all_internal_contracts() -> Vec<Box<dyn super::InternalContractTrait>> {
     vec![
-        Box::new(admin::AdminControl::instance()),
-        Box::new(staking::Staking::instance()),
-        Box::new(sponsor::SponsorWhitelistControl::instance()),
         Box::new(context::Context::instance()),
         Box::new(cross_space::CrossSpaceCall::instance()),
         Box::new(system_storage::SystemStorage::instance()),

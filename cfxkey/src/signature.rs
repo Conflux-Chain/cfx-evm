@@ -261,7 +261,7 @@ pub fn verify_address(
     message: &Message,
 ) -> Result<bool, Error> {
     let public = recover(signature, message)?;
-    let recovered_address = public_to_address(&public, true);
+    let recovered_address = public_to_address(&public);
     Ok(address == &recovered_address)
 }
 

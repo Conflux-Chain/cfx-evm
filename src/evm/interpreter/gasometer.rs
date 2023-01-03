@@ -133,9 +133,7 @@ impl<Gas: evm::CostType> Gasometer<Gas> {
         let cost = match instruction {
             instructions::JUMPDEST => Request::Gas(Gas::from(1)),
             instructions::SSTORE => {
-                let gas = if context.space() == Space::Native {
-                    spec.sstore_reset_gas
-                } else {
+                let gas = {
                     let mut key = vec![0; 32];
                     stack.peek(0).to_big_endian(key.as_mut());
 

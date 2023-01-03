@@ -135,9 +135,6 @@ struct InterpreterParams {
     pub sender: Address,
     /// This is the address of original sender of the transaction.
     pub original_sender: Address,
-    /// This is the address of original receiver of the transaction.
-    /// If it is a contract call, it is the address of the contract.
-    pub storage_owner: Address,
     /// Gas paid up front for transaction execution
     pub gas: U256,
     /// Gas price.
@@ -161,7 +158,6 @@ impl From<ActionParams> for InterpreterParams {
             address: params.address,
             sender: params.sender,
             original_sender: params.original_sender,
-            storage_owner: params.storage_owner,
             gas: params.gas,
             gas_price: params.gas_price,
             value: params.value,
@@ -701,12 +697,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                 let init_off = self.stack.pop_back();
                 let init_size = self.stack.pop_back();
                 let address_scheme = match instruction {
-                    instructions::CREATE if context.space() == Space::Native => {
-                        CreateContractAddress::FromSenderNonceAndCodeHash
-                    }
-                    instructions::CREATE if context.space() == Space::Ethereum => {
-                        CreateContractAddress::FromSenderNonce
-                    }
+                    instructions::CREATE => CreateContractAddress::FromSenderNonce,
                     instructions::CREATE2 => {
                         let h: H256 = BigEndianHash::from_uint(&self.stack.pop_back());
                         CreateContractAddress::FromSenderSaltAndCodeHash(h)
@@ -716,7 +707,7 @@ impl<Cost: CostType> Interpreter<Cost> {
 
                 let create_gas = provided.expect("`provided` comes through Self::exec from `Gasometer::get_gas_cost_mem`; `gas_gas_mem_cost` guarantees `Some` when instruction is `CALL`/`CALLCODE`/`DELEGATECALL`/`CREATE`; this is `CREATE`; qed");
 
-                if context.is_static_or_reentrancy() {
+                if context.is_static() {
                     return Err(vm::Error::MutableCallInStaticContext);
                 }
 
@@ -741,7 +732,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                 return match create_result {
                     Ok(ContractCreateResult::Created(address, gas_left)) => {
                         // Only reachable in Mocktest
-                        assert_eq!(address.space, Space::Native);
+                        assert!(cfg!(test));
                         self.stack.push(address_to_u256(address.address));
                         Ok(InstructionResult::UnusedGas(
                             Cost::from_u256(gas_left).expect("Gas left cannot be greater."),
@@ -802,9 +793,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                 let (sender_address, receive_address, has_balance, call_type) = match instruction {
                     // TAG: Forbid value transfer in static context.
                     instructions::CALL => {
-                        if context.is_static_or_reentrancy()
-                            && value.map_or(false, |v| !v.is_zero())
-                        {
+                        if context.is_static() && value.map_or(false, |v| !v.is_zero()) {
                             return Err(vm::Error::MutableCallInStaticContext);
                         }
                         let has_balance = context.balance(&self.params.address)?
@@ -844,14 +833,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                 // clear return data buffer before creating new call frame.
                 self.return_data = ReturnData::empty();
 
-                let valid_code_address = if context.space() == Space::Native {
-                    context.spec().is_valid_address(&code_address)
-                } else {
-                    true
-                };
-
-                let can_call =
-                    has_balance && context.depth() < context.spec().max_depth && valid_code_address;
+                let can_call = has_balance && context.depth() < context.spec().max_depth;
                 if !can_call {
                     self.stack.push(U256::zero());
                     return Ok(InstructionResult::UnusedGas(call_gas));
@@ -1141,7 +1123,6 @@ impl<Cost: CostType> Interpreter<Cost> {
             }
             instructions::NUMBER => {
                 let block_number = match context.space() {
-                    Space::Native => context.env().number,
                     Space::Ethereum => context.env().epoch_height,
                 };
                 self.stack.push(U256::from(block_number));

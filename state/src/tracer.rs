@@ -81,10 +81,6 @@ where
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AddressPocket {
     Balance(AddressWithSpace),
-    StakingBalance(Address),
-    StorageCollateral(Address),
-    SponsorBalanceForGas(Address),
-    SponsorBalanceForStorage(Address),
     MintBurn,
     GasPayment,
 }
@@ -93,11 +89,7 @@ impl AddressPocket {
     pub fn inner_address(&self) -> Option<&Address> {
         use AddressPocket::*;
         match self {
-            Balance(AddressWithSpace { address: addr, .. })
-            | StakingBalance(addr)
-            | StorageCollateral(addr)
-            | SponsorBalanceForGas(addr)
-            | SponsorBalanceForStorage(addr) => Some(addr),
+            Balance(AddressWithSpace { address: addr, .. }) => Some(addr),
             MintBurn | GasPayment => None,
         }
     }
@@ -110,10 +102,6 @@ impl AddressPocket {
         use AddressPocket::*;
         match self {
             Balance(_) => "balance",
-            StakingBalance(_) => "staking_balance",
-            StorageCollateral(_) => "storage_collateral",
-            SponsorBalanceForGas(_) => "sponsor_balance_for_gas",
-            SponsorBalanceForStorage(_) => "sponsor_balance_for_collateral",
             MintBurn => "mint_or_burn",
             GasPayment => "gas_payment",
         }
@@ -124,27 +112,18 @@ impl AddressPocket {
         match self {
             Balance(AddressWithSpace { space, .. }) => space.clone().into(),
             MintBurn | GasPayment => "none",
-            _ => Space::Native.into(),
         }
     }
 
     fn type_number(&self) -> u8 {
         use AddressPocket::*;
         match self {
-            Balance(AddressWithSpace {
-                space: Space::Native,
-                ..
-            }) => 0,
-            StakingBalance(_) => 1,
-            StorageCollateral(_) => 2,
-            SponsorBalanceForGas(_) => 3,
-            SponsorBalanceForStorage(_) => 4,
-            MintBurn => 5,
-            GasPayment => 6,
+            MintBurn => 0,
+            GasPayment => 1,
             Balance(AddressWithSpace {
                 space: Space::Ethereum,
                 ..
-            }) => 7,
+            }) => 2,
         }
     }
 }
@@ -170,16 +149,9 @@ impl Decodable for AddressPocket {
 
         let type_number: u8 = rlp.val_at(0)?;
         match type_number {
-            0 => rlp
-                .val_at(1)
-                .map(|addr: Address| Balance(addr.with_native_space())),
-            1 => rlp.val_at(1).map(StakingBalance),
-            2 => rlp.val_at(1).map(StorageCollateral),
-            3 => rlp.val_at(1).map(SponsorBalanceForGas),
-            4 => rlp.val_at(1).map(SponsorBalanceForStorage),
-            5 => Ok(MintBurn),
-            6 => Ok(GasPayment),
-            7 => rlp
+            0 => Ok(MintBurn),
+            1 => Ok(GasPayment),
+            2 => rlp
                 .val_at(1)
                 .map(|addr: Address| Balance(addr.with_evm_space())),
             _ => Err(DecoderError::Custom("Invalid internal transfer address.")),

@@ -20,7 +20,6 @@ pub use self::space_util::AddressSpaceUtil;
 
 #[derive(Eq, PartialEq, Hash, Copy, Clone, Debug, Ord, PartialOrd, Serialize, Deserialize)]
 pub enum Space {
-    Native,
     Ethereum,
 }
 
@@ -34,7 +33,6 @@ impl From<Space> for String {
 impl From<Space> for &'static str {
     fn from(space: Space) -> Self {
         match space {
-            Space::Native => "native",
             Space::Ethereum => "evm",
         }
     }
@@ -43,8 +41,7 @@ impl From<Space> for &'static str {
 impl Encodable for Space {
     fn rlp_append(&self, s: &mut RlpStream) {
         let type_int: u8 = match self {
-            Space::Native => 1,
-            Space::Ethereum => 2,
+            Space::Ethereum => 1,
         };
         type_int.rlp_append(s)
     }
@@ -53,8 +50,7 @@ impl Encodable for Space {
 impl Decodable for Space {
     fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         match u8::decode(rlp)? {
-            1u8 => Ok(Space::Native),
-            2u8 => Ok(Space::Ethereum),
+            1u8 => Ok(Space::Ethereum),
             _ => Err(DecoderError::Custom("Unrecognized space byte.")),
         }
     }
@@ -80,13 +76,8 @@ impl AllChainID {
 
     pub fn in_space(&self, space: Space) -> u32 {
         match space {
-            Space::Native => self.native,
             Space::Ethereum => self.ethereum,
         }
-    }
-
-    pub fn in_native_space(&self) -> u32 {
-        self.in_space(Space::Native)
     }
 
     pub fn in_evm_space(&self) -> u32 {
@@ -96,7 +87,7 @@ impl AllChainID {
 
 impl Default for Space {
     fn default() -> Self {
-        Space::Native
+        Space::Ethereum
     }
 }
 
@@ -106,21 +97,13 @@ pub struct AddressWithSpace {
     pub space: Space,
 }
 
-impl AddressWithSpace {
-    #[inline]
-    pub fn assert_native(&self) {
-        assert_eq!(self.space, Space::Native)
-    }
-}
+impl AddressWithSpace {}
 
 pub mod space_util {
     use super::{Address, AddressWithSpace, Space};
 
     pub trait AddressSpaceUtil: Sized {
         fn with_space(self, space: Space) -> AddressWithSpace;
-        fn with_native_space(self) -> AddressWithSpace {
-            self.with_space(Space::Native)
-        }
         fn with_evm_space(self) -> AddressWithSpace {
             self.with_space(Space::Ethereum)
         }

@@ -95,7 +95,7 @@ impl StateDbOps for StateDb {
 }
 
 use cfx_internal_common::debug::ComputeEpochDebugRecord;
-use cfx_statedb::{Result, StateDbExt, StateDb};
+use cfx_statedb::{Result, StateDb, StateDbExt};
 use cfx_types::{Address, AddressWithSpace, U256};
 use primitives::{is_default::IsDefault, StorageKeyWithSpace};
 use std::{collections::HashSet, sync::Arc};

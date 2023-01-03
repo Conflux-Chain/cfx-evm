@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use cfx_types::{Address, AddressWithSpace, Space};
+use cfx_types::{Address, AddressWithSpace};
 use primitives::BlockNumber;
 
 use crate::{evm::Spec, spec::CommonParams};
@@ -75,9 +75,6 @@ impl InternalContractMap {
         address: &AddressWithSpace,
         spec: &Spec,
     ) -> Option<&Box<dyn InternalContractTrait>> {
-        if address.space != Space::Native {
-            return None;
-        }
         self.builtin
             .get(&address.address)
             .filter(|&func| func.is_active(spec))

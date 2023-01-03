@@ -253,7 +253,7 @@ impl Context for MockContext {
 
     // The Mock Context doesn't consider the message call and do not have
     // reentrancy check.
-    fn is_static_or_reentrancy(&self) -> bool {
+    fn is_static(&self) -> bool {
         self.is_static
     }
 

@@ -234,7 +234,7 @@ impl Default for LogFilterParams {
             address: None,
             topics: vec![None, None, None, None],
             trusted: false,
-            space: Space::Native,
+            space: Space::Ethereum,
         }
     }
 }

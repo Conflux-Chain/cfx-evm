@@ -271,15 +271,14 @@ pub fn call_to_evmcore(
     let mapped_origin = evm_map(params.original_sender);
 
     context.state.transfer_balance(
-        &params.address.with_native_space(),
+        &params.address.with_evm_space(),
         &mapped_sender,
         &value,
         cleanup_mode(context.substate, context.spec),
         context.spec.account_start_nonce,
     )?;
-    context.state.add_total_evm_tokens(value);
     tracer.trace_internal_transfer(
-        AddressPocket::Balance(params.address.with_native_space()),
+        AddressPocket::Balance(params.address.with_evm_space()),
         AddressPocket::Balance(mapped_sender),
         params.value.value(),
     );
@@ -296,7 +295,6 @@ pub fn call_to_evmcore(
         value: ActionValue::Transfer(value),
         code_address: address.address,
         original_sender: mapped_origin.address,
-        storage_owner: mapped_sender.address,
         gas: call_gas,
         gas_price: params.gas_price,
         code,
@@ -354,15 +352,14 @@ pub fn create_to_evmcore(
 
     let value = params.value.value();
     context.state.transfer_balance(
-        &params.address.with_native_space(),
+        &params.address.with_evm_space(),
         &mapped_sender,
         &value,
         cleanup_mode(context.substate, context.spec),
         context.spec.account_start_nonce,
     )?;
-    context.state.add_total_evm_tokens(value);
     tracer.trace_internal_transfer(
-        AddressPocket::Balance(params.address.with_native_space()),
+        AddressPocket::Balance(params.address.with_evm_space()),
         AddressPocket::Balance(mapped_sender),
         params.value.value(),
     );
@@ -389,7 +386,6 @@ pub fn create_to_evmcore(
         address,
         sender: mapped_sender.address,
         original_sender: mapped_origin.address,
-        storage_owner: Address::zero(),
         gas: call_gas,
         gas_price: params.gas_price,
         value: ActionValue::Transfer(value),
@@ -435,15 +431,14 @@ pub fn withdraw_from_evmcore(
     }
     context.state.transfer_balance(
         &mapped_address,
-        &sender.with_native_space(),
+        &sender.with_evm_space(),
         &value,
         cleanup_mode(context.substate, context.spec),
         context.spec.account_start_nonce,
     )?;
-    context.state.subtract_total_evm_tokens(value);
     tracer.trace_internal_transfer(
         AddressPocket::Balance(mapped_address),
-        AddressPocket::Balance(sender.with_native_space()),
+        AddressPocket::Balance(sender.with_evm_space()),
         value,
     );
 

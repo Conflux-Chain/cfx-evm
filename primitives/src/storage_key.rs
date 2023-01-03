@@ -72,10 +72,6 @@ impl<'a> StorageKey<'a> {
         StorageKeyWithSpace { key: self, space }
     }
 
-    pub fn with_native_space(self) -> StorageKeyWithSpace<'a> {
-        self.with_space(Space::Native)
-    }
-
     pub fn with_evm_space(self) -> StorageKeyWithSpace<'a> {
         self.with_space(Space::Ethereum)
     }
@@ -112,13 +108,6 @@ impl<'a> StorageKey<'a> {
 
     pub fn new_vote_list_key(address: &'a Address) -> Self {
         StorageKey::VoteListKey(&address.0)
-    }
-}
-
-impl<'a> StorageKey<'a> {
-    // Compatible interface with rpc
-    pub fn to_key_bytes(&self) -> Vec<u8> {
-        self.clone().with_native_space().to_key_bytes()
     }
 }
 
@@ -180,17 +169,13 @@ impl<'a> StorageKeyWithSpace<'a> {
             }
         };
 
-        return if self.space == Space::Native {
-            key_bytes
-        } else {
-            // Insert "0x81" at the position 32.
-            [
-                &key_bytes[..ACCOUNT_KEYPART_BYTES],
-                Self::EVM_SPACE_TYPE,
-                &key_bytes[ACCOUNT_KEYPART_BYTES..],
-            ]
-            .concat()
-        };
+        // Insert "0x81" at the position 32.
+        return [
+            &key_bytes[..ACCOUNT_KEYPART_BYTES],
+            Self::EVM_SPACE_TYPE,
+            &key_bytes[ACCOUNT_KEYPART_BYTES..],
+        ]
+        .concat();
     }
 
     pub fn to_key_bytes(&self) -> Vec<u8> {
@@ -257,17 +242,13 @@ impl<'a> StorageKeyWithSpace<'a> {
             }
         };
 
-        return if self.space == Space::Native {
-            key_bytes
-        } else {
-            // Insert "0x81" at the position 20.
-            [
-                &key_bytes[..Self::ACCOUNT_BYTES],
-                Self::EVM_SPACE_TYPE,
-                &key_bytes[Self::ACCOUNT_BYTES..],
-            ]
-            .concat()
-        };
+        // Insert "0x81" at the position 20.
+        return [
+            &key_bytes[..Self::ACCOUNT_BYTES],
+            Self::EVM_SPACE_TYPE,
+            &key_bytes[Self::ACCOUNT_BYTES..],
+        ]
+        .concat();
     }
 
     // from_key_bytes::<CheckInput>(...) returns Result<StorageKey, String>
@@ -280,7 +261,8 @@ impl<'a> StorageKeyWithSpace<'a> {
         FromKeyBytesResult<ShouldCheckInput>: ConditionalReturnValue<'a>,
     {
         let key = if bytes.len() <= Self::ACCOUNT_BYTES {
-            StorageKey::AccountKey(bytes).with_native_space()
+            // StorageKey::AccountKey(bytes).with_native_space()
+            unreachable!()
         } else if bytes.len() == Self::ACCOUNT_BYTES + 1 {
             StorageKey::AccountKey(&bytes[..Self::ACCOUNT_BYTES]).with_evm_space()
         } else {
@@ -349,7 +331,8 @@ impl<'a> StorageKeyWithSpace<'a> {
             let space = if extension_bit {
                 Space::Ethereum
             } else {
-                Space::Native
+                unreachable!()
+                // Space::Native
             };
 
             storage_key_no_space.with_space(space)
@@ -588,24 +571,19 @@ mod delta_mpt_storage_key {
             let remaining_bytes = delta_mpt_key;
             let bytes_len = remaining_bytes.len();
             if bytes_len < ACCOUNT_KEYPART_BYTES {
-                if cfg!(feature = "test_no_account_length_check") {
-                    // The branch is test only. When an address with incomplete
-                    // length, it's passed to DeltaMPT directly.
-                    return StorageKey::AccountKey(remaining_bytes).with_native_space();
+                if cfg!(debug_assertions) {
+                    unreachable!(
+                        "Invalid delta mpt key format. Unrecognized: {:?}",
+                        remaining_bytes
+                    );
                 } else {
-                    if cfg!(debug_assertions) {
-                        unreachable!(
-                            "Invalid delta mpt key format. Unrecognized: {:?}",
-                            remaining_bytes
-                        );
-                    } else {
-                        unsafe { unreachable_unchecked() }
-                    }
+                    unsafe { unreachable_unchecked() }
                 }
             } else {
                 let address_bytes = &remaining_bytes[ACCOUNT_PADDING_BYTES..ACCOUNT_KEYPART_BYTES];
                 if bytes_len == ACCOUNT_KEYPART_BYTES {
-                    return StorageKey::AccountKey(address_bytes).with_native_space();
+                    unreachable!();
+                    // return StorageKey::AccountKey(address_bytes).with_native_space();
                 }
                 if bytes_len == ACCOUNT_KEYPART_BYTES + 1 {
                     return StorageKey::AccountKey(address_bytes).with_evm_space();
@@ -654,14 +632,15 @@ mod delta_mpt_storage_key {
                             address_bytes, remaining_bytes
                         );
                     } else {
-                        unsafe { unreachable_unchecked() }
+                        unreachable!();
                     }
                 };
 
                 let space = if extension_bit {
                     Space::Ethereum
                 } else {
-                    Space::Native
+                    unreachable!();
+                    // Space::Native
                 };
                 storage_key_no_space.with_space(space)
             }
