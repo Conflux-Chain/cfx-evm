@@ -92,18 +92,12 @@ pub struct Receipt {
     pub accumulated_gas_used: U256,
     /// The gas fee charged for transaction execution.
     pub gas_fee: U256,
-    /// The designated account to bear the gas fee, if any.
-    pub gas_sponsor_paid: bool,
     /// The OR-wide combination of all logs' blooms for this transaction.
     pub log_bloom: Bloom,
     /// The logs stemming from this transaction.
     pub logs: Vec<LogEntry>,
     /// Transaction outcome.
     pub outcome_status: TransactionOutcome,
-    /// The designated account to bear the storage fee, if any.
-    pub storage_sponsor_paid: bool,
-    pub storage_collateralized: Vec<StorageChange>,
-    pub storage_released: Vec<StorageChange>,
 }
 
 impl Receipt {
@@ -111,23 +105,15 @@ impl Receipt {
         outcome: TransactionOutcome,
         accumulated_gas_used: U256,
         gas_fee: U256,
-        gas_sponsor_paid: bool,
         logs: Vec<LogEntry>,
         log_bloom: Bloom,
-        storage_sponsor_paid: bool,
-        storage_collateralized: Vec<StorageChange>,
-        storage_released: Vec<StorageChange>,
     ) -> Self {
         Self {
             accumulated_gas_used,
             gas_fee,
-            gas_sponsor_paid,
             log_bloom,
             logs,
             outcome_status: outcome,
-            storage_sponsor_paid,
-            storage_collateralized,
-            storage_released,
         }
     }
 }
@@ -141,8 +127,6 @@ impl MallocSizeOf for StorageChange {
 impl MallocSizeOf for Receipt {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.logs.size_of(ops)
-            + self.storage_released.size_of(ops)
-            + self.storage_released.size_of(ops)
     }
 }
 

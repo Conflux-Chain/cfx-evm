@@ -25,7 +25,7 @@ use crate::{
     },
     vm_factory::VmFactory,
 };
-use cfx_parameters::{consensus::ONE_CFX_IN_DRIP, staking::*};
+use cfx_parameters::consensus::ONE_CFX_IN_DRIP;
 use cfx_state::{
     state_trait::StateOpsTrait, substate_trait::SubstateMngTrait, CleanupMode, StateTrait,
     SubstateTrait,
@@ -33,8 +33,7 @@ use cfx_state::{
 use cfx_statedb::Result as DbResult;
 use cfx_types::{Address, AddressSpaceUtil, AddressWithSpace, Space, H256, U256, U512, U64};
 use primitives::{
-    receipt::StorageChange, storage::STORAGE_LAYOUT_REGULAR_V0, transaction::Action,
-    SignedTransaction, StorageLayout,
+    storage::STORAGE_LAYOUT_REGULAR_V0, transaction::Action, SignedTransaction, StorageLayout,
 };
 use rlp::RlpStream;
 use std::{
@@ -150,29 +149,9 @@ impl TransactOptions {
     pub fn estimate_first_pass(request: EstimateRequest) -> Self {
         Self {
             observer: Observer::virtual_call(),
-            check_settings: TransactCheckSettings::from_estimate_request(
-                request,
-                ChargeCollateral::EstimateSender,
-            ),
+            check_settings: TransactCheckSettings::from_estimate_request(request),
         }
     }
-
-    pub fn estimate_second_pass(request: EstimateRequest) -> Self {
-        Self {
-            observer: Observer::virtual_call(),
-            check_settings: TransactCheckSettings::from_estimate_request(
-                request,
-                ChargeCollateral::EstimateSponsor,
-            ),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ChargeCollateral {
-    Normal,
-    EstimateSender,
-    EstimateSponsor,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -196,31 +175,22 @@ impl EstimateRequest {
 
 #[derive(Debug, Clone, Copy)]
 pub struct TransactCheckSettings {
-    pub charge_collateral: ChargeCollateral,
     pub charge_gas: bool,
     pub real_execution: bool,
-    pub check_epoch_height: bool,
 }
 
 impl TransactCheckSettings {
     fn all_checks() -> Self {
         Self {
-            charge_collateral: ChargeCollateral::Normal,
             charge_gas: true,
             real_execution: true,
-            check_epoch_height: true,
         }
     }
 
-    fn from_estimate_request(
-        request: EstimateRequest,
-        charge_collateral: ChargeCollateral,
-    ) -> Self {
+    fn from_estimate_request(request: EstimateRequest) -> Self {
         Self {
-            charge_collateral,
             charge_gas: request.charge_gas(),
             real_execution: false,
-            check_epoch_height: false,
         }
     }
 }
@@ -868,14 +838,6 @@ pub struct ExecutiveGeneric<'a, Substate: SubstateTrait> {
     static_flag: bool,
 }
 
-struct SponsorCheckOutput {
-    sender_intended_cost: U512,
-    total_cost: U512,
-    gas_sponsored: bool,
-    storage_sponsored: bool,
-    storage_sponsor_eligible: bool,
-}
-
 pub fn gas_required_for(is_create: bool, data: &[u8], spec: &Spec) -> u64 {
     data.iter().fold(
         (if is_create {
@@ -1036,7 +998,7 @@ impl<'a, Substate: SubstateMngTrait> ExecutiveGeneric<'a, Substate> {
         if request.has_sender {
             // Unwrap safety: in given TransactOptions, this value must be
             // `Some(_)`.
-            let gas_fee = if request.recheck_gas_fee() && !executed.gas_sponsor_paid {
+            let gas_fee = if request.recheck_gas_fee() {
                 executed
                     .estimated_gas_limit
                     .unwrap()
@@ -1044,22 +1006,13 @@ impl<'a, Substate: SubstateMngTrait> ExecutiveGeneric<'a, Substate> {
             } else {
                 0.into()
             };
-            let storage_collateral = if !executed.storage_sponsor_paid {
-                U256::from(executed.estimated_storage_limit) * *DRIPS_PER_STORAGE_COLLATERAL_UNIT
-            } else {
-                0.into()
-            };
-            let value_and_fee = tx
-                .value()
-                .saturating_add(gas_fee)
-                .saturating_add(storage_collateral);
+            let value_and_fee = tx.value().saturating_add(gas_fee);
             if balance < value_and_fee {
                 return Ok(ExecutionOutcome::ExecutionErrorBumpNonce(
                     ExecutionError::NotEnoughCash {
                         required: value_and_fee.into(),
                         got: balance.into(),
                         actual_gas_cost: min(balance, gas_fee),
-                        max_storage_limit_cost: storage_collateral,
                     },
                     executed,
                 ));
@@ -1111,29 +1064,13 @@ impl<'a, Substate: SubstateMngTrait> ExecutiveGeneric<'a, Substate> {
         } else {
             0.into()
         };
-        let storage_cost = U256::zero();
 
         let sender_balance = U512::from(balance);
 
-        let SponsorCheckOutput {
-            sender_intended_cost,
-            total_cost,
-            gas_sponsored,
-            storage_sponsored,
-            storage_sponsor_eligible,
-        } = {
-            let sender_cost = U512::from(tx.value()) + gas_cost;
-            SponsorCheckOutput {
-                sender_intended_cost: sender_cost,
-                total_cost: sender_cost,
-                gas_sponsored: false,
-                storage_sponsored: false,
-                storage_sponsor_eligible: false,
-            }
-        };
+        let total_cost = U512::from(tx.value()) + gas_cost;
 
         let mut tx_substate = Substate::new();
-        if sender_balance < sender_intended_cost {
+        if sender_balance < total_cost {
             // Sender is responsible for the insufficient balance.
             // Sub tx fee if not enough cash, and substitute all remaining
             // balance if balance is not enough to pay the tx fee
@@ -1165,13 +1102,10 @@ impl<'a, Substate: SubstateMngTrait> ExecutiveGeneric<'a, Substate> {
                     required: total_cost,
                     got: sender_balance,
                     actual_gas_cost: actual_gas_cost.clone(),
-                    max_storage_limit_cost: storage_cost,
                 },
                 Executed::not_enough_balance_fee_charged(
                     tx,
                     &actual_gas_cost,
-                    gas_sponsored,
-                    storage_sponsored,
                     observer.tracer.map_or(Default::default(), |t| t.drain()),
                     &self.spec,
                 ),
@@ -1296,12 +1230,6 @@ impl<'a, Substate: SubstateMngTrait> ExecutiveGeneric<'a, Substate> {
             tx_substate,
             result,
             output,
-            /* Storage sponsor paid */
-            if self.spec.cip78a {
-                storage_sponsored
-            } else {
-                storage_sponsor_eligible
-            },
             observer,
             estimated_gas_limit,
         )?)
@@ -1338,7 +1266,6 @@ impl<'a, Substate: SubstateMngTrait> ExecutiveGeneric<'a, Substate> {
         mut substate: Substate,
         result: vm::Result<FinalizationResult>,
         output: Bytes,
-        storage_sponsor_paid: bool,
         mut observer: Observer,
         estimated_gas_limit: Option<U256>,
     ) -> DbResult<ExecutionOutcome> {
@@ -1414,61 +1341,22 @@ impl<'a, Substate: SubstateMngTrait> ExecutiveGeneric<'a, Substate> {
                 ExecutionError::VmError(exception),
                 Executed::execution_error_fully_charged(
                     tx,
-                    false,
-                    storage_sponsor_paid,
                     observer.tracer.map_or(Default::default(), |t| t.drain()),
                     &self.spec,
                 ),
             )),
             Ok(r) => {
-                let mut storage_collateralized = Vec::new();
-                let mut storage_released = Vec::new();
-
-                if r.apply_state {
-                    let mut affected_address: Vec<_> = substate
-                        .keys_for_collateral_changed()
-                        .iter()
-                        .cloned()
-                        .collect();
-                    affected_address.sort();
-                    for address in affected_address {
-                        let (inc, sub) = substate.get_collateral_change(&address);
-                        if inc > 0 {
-                            storage_collateralized.push(StorageChange {
-                                address: *address,
-                                collaterals: inc.into(),
-                            });
-                        } else if sub > 0 {
-                            storage_released.push(StorageChange {
-                                address: *address,
-                                collaterals: sub.into(),
-                            });
-                        }
-                    }
-                }
-
                 let trace = observer.tracer.map_or(Default::default(), |t| t.drain());
-
-                let estimated_storage_limit = if let Some(x) = storage_collateralized.first() {
-                    x.collaterals.as_u64()
-                } else {
-                    0
-                };
 
                 let executed = Executed {
                     gas_used,
                     gas_charged,
                     fee: fees_value,
-                    gas_sponsor_paid: false,
                     logs: substate.logs().to_vec(),
                     contracts_created: substate.contracts_created().to_vec(),
-                    storage_sponsor_paid,
-                    storage_collateralized,
-                    storage_released,
                     output,
                     trace,
                     estimated_gas_limit,
-                    estimated_storage_limit,
                 };
 
                 if r.apply_state {

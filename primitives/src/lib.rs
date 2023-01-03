@@ -33,7 +33,7 @@ mod transaction_index;
 
 pub use crate::{
     account::{Account, CodeInfo, VoteStakeInfo},
-    block::{Block, BlockNumber, BlockHeight},
+    block::{Block, BlockHeight, BlockNumber},
     block_header::{BlockHeader, BlockHeaderBuilder},
     block_number::compute_block_number,
     epoch::{BlockHashOrEpochNumber, EpochId, EpochNumber, NULL_EPOCH},

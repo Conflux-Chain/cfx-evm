@@ -35,21 +35,9 @@ pub trait StateDbExt {
         total_issued_tokens: &U256,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
     ) -> Result<()>;
-
-    // This function is used to check whether the db has been initialized when
-    // create a state. So we can know the loaded `None` represents "not
-    // initialized" or "zero value".
-    fn is_initialized(&self) -> Result<bool>;
 }
 
-pub const ACCUMULATE_INTEREST_RATE_KEY: &'static [u8] = b"accumulate_interest_rate";
-pub const INTEREST_RATE_KEY: &'static [u8] = b"interest_rate";
-pub const TOTAL_BANK_TOKENS_KEY: &'static [u8] = b"total_staking_tokens";
-pub const TOTAL_STORAGE_TOKENS_KEY: &'static [u8] = b"total_storage_tokens";
 pub const TOTAL_TOKENS_KEY: &'static [u8] = b"total_issued_tokens";
-pub const TOTAL_POS_STAKING_TOKENS_KEY: &'static [u8] = b"total_pos_staking_tokens";
-pub const DISTRIBUTABLE_POS_INTEREST_KEY: &'static [u8] = b"distributable_pos_interest";
-pub const LAST_DISTRIBUTE_BLOCK_KEY: &'static [u8] = b"last_distribute_block";
 
 impl StateDbExt for StateDb {
     fn get<T>(&self, key: StorageKeyWithSpace) -> Result<Option<T>>
@@ -117,15 +105,5 @@ impl StateDbExt for StateDb {
         )
         .with_evm_space();
         self.set::<U256>(total_issued_tokens_key, total_issued_tokens, debug_record)
-    }
-
-    fn is_initialized(&self) -> Result<bool> {
-        let interest_rate_key = StorageKey::new_storage_key(
-            &STORAGE_INTEREST_STAKING_CONTRACT_ADDRESS,
-            INTEREST_RATE_KEY,
-        )
-        .with_evm_space();
-        let interest_rate_opt = self.get::<U256>(interest_rate_key)?;
-        Ok(interest_rate_opt.is_some())
     }
 }

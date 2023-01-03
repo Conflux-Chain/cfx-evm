@@ -45,7 +45,7 @@ pub enum RequireCache {
 
 #[derive(Copy, Clone, Debug)]
 struct WorldStatistics {
-    // This is the total number of CFX issued.
+    // This is the total number of tokens issued.
     total_issued_tokens: U256,
 }
 
@@ -409,14 +409,8 @@ impl State {
     pub fn new(db: StateDb) -> DbResult<Self> {
         let total_issued_tokens = db.get_total_issued_tokens()?;
 
-        let world_stat = if db.is_initialized()? {
-            WorldStatistics {
-                total_issued_tokens,
-            }
-        } else {
-            WorldStatistics {
-                total_issued_tokens: U256::default(),
-            }
+        let world_statistics = WorldStatistics {
+            total_issued_tokens,
         };
 
         Ok(State {
@@ -424,52 +418,9 @@ impl State {
             cache: Default::default(),
             world_statistics_checkpoints: Default::default(),
             checkpoints: Default::default(),
-            world_statistics: world_stat,
+            world_statistics,
             accounts_to_notify: Default::default(),
         })
-    }
-
-    #[cfg(test)]
-    pub fn new_contract(
-        &mut self,
-        contract: &AddressWithSpace,
-        balance: U256,
-        nonce: U256,
-    ) -> DbResult<()> {
-        let invalidated_storage =
-            self.ensure_account_loaded(contract, RequireCache::None, |maybe_overlay| {
-                maybe_overlay.map_or(false, |overlay| overlay.invalidated_storage())
-            })?;
-        Self::update_cache(
-            self.cache.get_mut(),
-            self.checkpoints.get_mut(),
-            contract,
-            AccountEntry::new_dirty(Some(OverlayAccount::new_contract(
-                &contract.address,
-                balance,
-                nonce,
-                invalidated_storage,
-                Some(STORAGE_LAYOUT_REGULAR_V0),
-            ))),
-        );
-        Ok(())
-    }
-
-    #[cfg(test)]
-    pub fn new_contract_with_code(
-        &mut self,
-        contract: &AddressWithSpace,
-        balance: U256,
-        nonce: U256,
-    ) -> DbResult<()> {
-        self.new_contract(contract, balance, nonce)?;
-        self.init_code(&contract, vec![0x12, 0x34], Address::zero())?;
-        Ok(())
-    }
-
-    pub fn touch(&mut self, address: &AddressWithSpace) -> DbResult<()> {
-        drop(self.require_exists(address, false)?);
-        Ok(())
     }
 
     fn needs_update(require: RequireCache, account: &OverlayAccount) -> bool {
@@ -711,33 +662,6 @@ impl State {
                 .as_mut()
                 .expect("Required account must exist.")
         }))
-    }
-
-    #[cfg(any(test, feature = "testonly_code"))]
-    pub fn clear(&mut self) {
-        assert!(self.checkpoints.get_mut().is_empty());
-        assert!(self.world_statistics_checkpoints.get_mut().is_empty());
-        self.cache.get_mut().clear();
-        self.world_statistics.interest_rate_per_block =
-            self.db.get_annual_interest_rate().expect("no db error") / U256::from(BLOCKS_PER_YEAR);
-        self.world_statistics.accumulate_interest_rate =
-            self.db.get_accumulate_interest_rate().expect("no db error");
-        self.world_statistics.total_issued_tokens =
-            self.db.get_total_issued_tokens().expect("no db error");
-        self.world_statistics.total_staking_tokens =
-            self.db.get_total_staking_tokens().expect("no db error");
-        self.world_statistics.total_storage_tokens =
-            self.db.get_total_storage_tokens().expect("no db error");
-        self.world_statistics.total_pos_staking_tokens =
-            self.db.get_total_pos_staking_tokens().expect("no db error");
-        self.world_statistics.distributable_pos_interest = self
-            .db
-            .get_distributable_pos_interest()
-            .expect("no db error");
-        self.world_statistics.last_distribute_block =
-            self.db.get_last_distribute_block().expect("no db error");
-        self.world_statistics.total_evm_tokens =
-            self.db.get_total_evm_tokens().expect("no db error");
     }
 }
 
