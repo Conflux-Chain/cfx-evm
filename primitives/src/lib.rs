@@ -8,11 +8,9 @@ extern crate keccak_hash as hash;
 extern crate log;
 extern crate rlp;
 extern crate rlp_derive;
-extern crate unexpected;
-#[macro_use]
-extern crate lazy_static;
 #[cfg(test)]
 extern crate serde_json;
+extern crate unexpected;
 
 pub mod account;
 mod block;

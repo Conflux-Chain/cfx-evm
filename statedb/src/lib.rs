@@ -17,28 +17,27 @@ mod statedb_ext;
 mod tests;
 
 use cfx_internal_common::debug::ComputeEpochDebugRecord;
-use primitives::{EpochId, StorageKeyWithSpace};
+use primitives::{EpochId, StateKey};
 
 pub use self::{
     error::{Error, ErrorKind, Result},
     impls::StateDb,
     statedb_ext::{StateDbExt, TOTAL_TOKENS_KEY},
 };
-use std::sync::Arc;
 
 pub trait StateDbTrait {
-    fn get_raw(&self, key: StorageKeyWithSpace) -> Result<Option<Arc<[u8]>>>;
+    fn get_raw(&self, key: StateKey) -> Result<Option<Box<[u8]>>>;
 
     fn set_raw(
         &mut self,
-        key: StorageKeyWithSpace,
+        key: StateKey,
         value: Box<[u8]>,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
     ) -> Result<()>;
 
     fn delete(
         &mut self,
-        key: StorageKeyWithSpace,
+        key: StateKey,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
     ) -> Result<()>;
 
@@ -46,7 +45,5 @@ pub trait StateDbTrait {
         &mut self,
         epoch_id: EpochId,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
-    ) -> Result<()> {
-        todo!()
-    }
+    ) -> Result<()>;
 }

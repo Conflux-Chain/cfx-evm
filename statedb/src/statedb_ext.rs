@@ -7,15 +7,15 @@ use rlp::Rlp;
 use crate::StateDbTrait;
 use cfx_internal_common::debug::ComputeEpochDebugRecord;
 use cfx_parameters::internal_contract_addresses::STORAGE_INTEREST_STAKING_CONTRACT_ADDRESS;
-use cfx_types::{AddressWithSpace, H256, U256};
-use primitives::{is_default::IsDefault, Account, CodeInfo, StorageKey, StorageKeyWithSpace};
+use cfx_types::{AddressSpaceUtil, AddressWithSpace, H256, U256};
+use primitives::{is_default::IsDefault, Account, CodeInfo, StateKey};
 
 use super::Result;
 
 pub const TOTAL_TOKENS_KEY: &'static [u8] = b"total_issued_tokens";
 
 pub trait StateDbExt: StateDbTrait {
-    fn get<T>(&self, key: StorageKeyWithSpace) -> Result<Option<T>>
+    fn get<T>(&self, key: StateKey) -> Result<Option<T>>
     where
         T: ::rlp::Decodable,
     {
@@ -28,7 +28,7 @@ pub trait StateDbExt: StateDbTrait {
 
     fn set<T>(
         &mut self,
-        key: StorageKeyWithSpace,
+        key: StateKey,
         value: &T,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
     ) -> Result<()>
@@ -43,8 +43,7 @@ pub trait StateDbExt: StateDbTrait {
     }
 
     fn get_account(&self, address: &AddressWithSpace) -> Result<Option<Account>> {
-        match self.get_raw(StorageKey::new_account_key(&address.address).with_space(address.space))
-        {
+        match self.get_raw(StateKey::new_account_key(&address)) {
             Ok(None) => Ok(None),
             Ok(Some(raw)) => Ok(Some(Account::new_from_rlp(
                 address.address,
@@ -55,16 +54,11 @@ pub trait StateDbExt: StateDbTrait {
     }
 
     fn get_code(&self, address: &AddressWithSpace, code_hash: &H256) -> Result<Option<CodeInfo>> {
-        self.get::<CodeInfo>(
-            StorageKey::new_code_key(&address.address, code_hash).with_space(address.space),
-        )
+        self.get::<CodeInfo>(StateKey::new_code_key(&address))
     }
     fn get_total_issued_tokens(&self) -> Result<U256> {
-        let total_issued_tokens_key = StorageKey::new_storage_key(
-            &STORAGE_INTEREST_STAKING_CONTRACT_ADDRESS,
-            TOTAL_TOKENS_KEY,
-        )
-        .with_evm_space();
+        let address = STORAGE_INTEREST_STAKING_CONTRACT_ADDRESS.with_evm_space();
+        let total_issued_tokens_key = StateKey::new_storage_key(&address, TOTAL_TOKENS_KEY);
         let total_issued_tokens_opt = self.get::<U256>(total_issued_tokens_key)?;
         Ok(total_issued_tokens_opt.unwrap_or_default())
     }
@@ -74,11 +68,8 @@ pub trait StateDbExt: StateDbTrait {
         total_issued_tokens: &U256,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
     ) -> Result<()> {
-        let total_issued_tokens_key = StorageKey::new_storage_key(
-            &STORAGE_INTEREST_STAKING_CONTRACT_ADDRESS,
-            TOTAL_TOKENS_KEY,
-        )
-        .with_evm_space();
+        let address = STORAGE_INTEREST_STAKING_CONTRACT_ADDRESS.with_evm_space();
+        let total_issued_tokens_key = StateKey::new_storage_key(&address, TOTAL_TOKENS_KEY);
         self.set::<U256>(total_issued_tokens_key, total_issued_tokens, debug_record)
     }
 }

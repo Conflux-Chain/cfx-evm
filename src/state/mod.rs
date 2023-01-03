@@ -21,7 +21,7 @@ use cfx_types::{AddressSpaceUtil, AddressWithSpace, H256, U256};
 use parking_lot::{MappedRwLockWriteGuard, RwLock, RwLockUpgradableReadGuard, RwLockWriteGuard};
 #[cfg(test)]
 use primitives::storage::STORAGE_LAYOUT_REGULAR_V0;
-use primitives::{Account, EpochId, StorageKey, StorageLayout};
+use primitives::{Account, EpochId, StateKey, StorageLayout};
 
 use crate::hash::KECCAK_EMPTY;
 
@@ -462,7 +462,7 @@ impl State {
             //     debug_record.as_deref_mut(),
             // )?;
             self.db.delete(
-                StorageKey::new_account_key(&address.address).with_space(address.space),
+                StateKey::new_account_key(&address),
                 debug_record.as_deref_mut(),
             )?;
         }

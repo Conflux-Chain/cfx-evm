@@ -14,9 +14,7 @@ use cfx_statedb::{Result as DbResult, StateDb, StateDbExt};
 use cfx_types::AddressSpaceUtil;
 use cfx_types::{address_util::AddressUtil, Address, AddressWithSpace, H256, U256};
 use parking_lot::RwLock;
-use primitives::{
-    is_default::IsDefault, Account, CodeInfo, StorageKey, StorageLayout, StorageValue,
-};
+use primitives::{is_default::IsDefault, Account, CodeInfo, StateKey, StorageLayout, StorageValue};
 use std::{collections::HashMap, sync::Arc};
 
 lazy_static! {
@@ -322,9 +320,9 @@ impl OverlayAccount {
         address: &AddressWithSpace,
         key: &[u8],
     ) -> DbResult<U256> {
-        if let Some(value) = db.get::<StorageValue>(
-            StorageKey::new_storage_key(&address.address, key.as_ref()).with_space(address.space),
-        )? {
+        if let Some(value) =
+            db.get::<StorageValue>(StateKey::new_storage_key(&address, key.as_ref()))?
+        {
             storage_value_read_cache.insert(key.to_vec(), value.value);
             Ok(value.value)
         } else {
@@ -365,8 +363,7 @@ impl OverlayAccount {
         }
 
         for (k, v) in Arc::make_mut(&mut self.storage_value_write_cache).drain() {
-            let address_key = StorageKey::new_storage_key(&self.address.address, k.as_ref())
-                .with_space(self.address.space);
+            let address_key = StateKey::new_storage_key(&self.address, k.as_ref());
             match v.is_zero() {
                 true => state.db.delete(address_key, debug_record.as_deref_mut())?,
                 false => state.db.set::<StorageValue>(
@@ -378,8 +375,7 @@ impl OverlayAccount {
         }
 
         if let Some(code_info) = self.code.as_ref() {
-            let storage_key = StorageKey::new_code_key(&self.address.address, &self.code_hash)
-                .with_space(self.address.space);
+            let storage_key = StateKey::new_code_key(&self.address);
             state
                 .db
                 .set::<CodeInfo>(storage_key, code_info, debug_record.as_deref_mut())?;
@@ -394,7 +390,7 @@ impl OverlayAccount {
         }
 
         state.db.set::<Account>(
-            StorageKey::new_account_key(&address.address).with_space(address.space),
+            StateKey::new_account_key(&address),
             &self.as_account(),
             debug_record,
         )?;
