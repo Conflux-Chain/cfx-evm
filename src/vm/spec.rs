@@ -21,7 +21,6 @@
 //! Cost spec and other parameterisations for the EVM.
 
 use crate::spec::CommonParams;
-use cfx_parameters::consensus_internal::DAO_PARAMETER_VOTE_PERIOD;
 use cfx_types::{address_util::AddressUtil, Address, U256};
 use primitives::BlockNumber;
 
@@ -160,7 +159,6 @@ pub struct Spec {
     /// CIP-105: Minimal DAO votes requirement based on PoS votes.
     pub cip105: bool,
     pub cip_sigma_fix: bool,
-    pub params_dao_vote_period: u64,
 }
 
 /// Wasm cost table
@@ -298,7 +296,6 @@ impl Spec {
             cip94: false,
             evm_gas_ratio: 2,
             cip94_activation_block_number: u64::MAX,
-            params_dao_vote_period: DAO_PARAMETER_VOTE_PERIOD,
             cip97: false,
             cip98: false,
             cip105: false,
@@ -323,7 +320,6 @@ impl Spec {
         spec.cip98 = number >= params.transition_numbers.cip98;
         spec.cip105 = number >= params.transition_numbers.cip105;
         spec.cip_sigma_fix = number >= params.transition_numbers.cip_sigma_fix;
-        spec.params_dao_vote_period = params.params_dao_vote_period;
         spec
     }
 

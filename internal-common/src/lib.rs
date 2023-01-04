@@ -1,8 +1,6 @@
 extern crate serde;
 extern crate serde_derive;
 
-pub struct StateRootWithAuxInfo;
-
 pub mod chain_id;
 
 pub mod debug {
