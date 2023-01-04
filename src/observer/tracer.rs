@@ -1,6 +1,6 @@
 use super::VmObserve;
 use crate::{
-    executive::ExecutiveResult,
+    call_create_frame::FrameResult,
     observer::trace::{
         Action, Call, CallResult, Create, CreateResult, ExecTrace, InternalTransferAction,
     },
@@ -47,11 +47,11 @@ impl VmObserve for ExecutiveTracer {
         self.traces.push(action);
     }
 
-    fn record_call_result(&mut self, result: &VmResult<ExecutiveResult>) {
+    fn record_call_result(&mut self, result: &VmResult<FrameResult>) {
         let action = Action::CallResult(CallResult::from(result));
         let success = matches!(
             result,
-            Ok(ExecutiveResult {
+            Ok(FrameResult {
                 apply_state: true,
                 ..
             })
@@ -74,11 +74,11 @@ impl VmObserve for ExecutiveTracer {
         self.traces.push(action);
     }
 
-    fn record_create_result(&mut self, result: &VmResult<ExecutiveResult>) {
+    fn record_create_result(&mut self, result: &VmResult<FrameResult>) {
         let action = Action::CreateResult(CreateResult::from(result));
         let success = matches!(
             result,
-            Ok(ExecutiveResult {
+            Ok(FrameResult {
                 apply_state: true,
                 ..
             })

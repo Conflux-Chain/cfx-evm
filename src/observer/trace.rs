@@ -5,7 +5,7 @@
 use super::AddressPocket;
 use crate::{
     bytes::Bytes,
-    executive::ExecutiveResult,
+    call_create_frame::FrameResult,
     observer::trace_filter::TraceFilter,
     vm::{ActionParams, CallType, CreateType, Result as vmResult},
 };
@@ -121,10 +121,10 @@ pub struct CallResult {
     pub return_data: Bytes,
 }
 
-impl From<&vmResult<ExecutiveResult>> for CallResult {
-    fn from(r: &vmResult<ExecutiveResult>) -> Self {
+impl From<&vmResult<FrameResult>> for CallResult {
+    fn from(r: &vmResult<FrameResult>) -> Self {
         match r {
-            Ok(ExecutiveResult {
+            Ok(FrameResult {
                 gas_left,
                 return_data,
                 apply_state: true,
@@ -134,7 +134,7 @@ impl From<&vmResult<ExecutiveResult>> for CallResult {
                 gas_left: gas_left.clone(),
                 return_data: return_data.to_vec(),
             },
-            Ok(ExecutiveResult {
+            Ok(FrameResult {
                 gas_left,
                 return_data,
                 apply_state: false,
@@ -207,10 +207,10 @@ pub struct CreateResult {
     pub return_data: Bytes,
 }
 
-impl From<&vmResult<ExecutiveResult>> for CreateResult {
-    fn from(r: &vmResult<ExecutiveResult>) -> Self {
+impl From<&vmResult<FrameResult>> for CreateResult {
+    fn from(r: &vmResult<FrameResult>) -> Self {
         match r {
-            Ok(ExecutiveResult {
+            Ok(FrameResult {
                 gas_left,
                 return_data,
                 apply_state: true,
@@ -223,7 +223,7 @@ impl From<&vmResult<ExecutiveResult>> for CreateResult {
                 gas_left: gas_left.clone(),
                 return_data: return_data.to_vec(),
             },
-            Ok(ExecutiveResult {
+            Ok(FrameResult {
                 gas_left,
                 return_data,
                 apply_state: false,

@@ -4,9 +4,7 @@
 
 use super::CleanupMode;
 use crate::evm::{CleanDustMode, Spec};
-use cfx_state::state_trait::StateOpsTrait;
-use cfx_statedb::Result as DbResult;
-use cfx_types::{AddressWithSpace, U256};
+use cfx_types::AddressWithSpace;
 use primitives::LogEntry;
 use std::collections::{HashMap, HashSet};
 
@@ -83,31 +81,6 @@ impl Substate {
 
     pub fn new() -> Self {
         Substate::default()
-    }
-}
-
-impl Substate {
-    // Let VM access storage from substate so that storage ownership can be
-    // maintained without help from state.
-    pub fn storage_at(
-        &self,
-        state: &dyn StateOpsTrait,
-        address: &AddressWithSpace,
-        key: &[u8],
-    ) -> DbResult<U256> {
-        state.storage_at(address, key)
-    }
-
-    // Let VM access storage from substate so that storage ownership can be
-    // maintained without help from state.
-    pub fn set_storage(
-        &mut self,
-        state: &mut dyn StateOpsTrait,
-        address: &AddressWithSpace,
-        key: Vec<u8>,
-        value: U256,
-    ) -> DbResult<()> {
-        state.set_storage(address, key, value)
     }
 }
 

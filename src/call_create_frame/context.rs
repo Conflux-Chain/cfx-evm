@@ -3,12 +3,9 @@
 // See http://www.gnu.org/licenses/
 
 // Transaction execution environment.
-use super::{
-    executive::*,
-    internal_contract::{suicide as suicide_impl, InternalRefContext},
-};
 use crate::{
     bytes::Bytes,
+    internal_contract::{suicide as suicide_impl, InternalRefContext},
     machine::Machine,
     observer::VmObserve,
     state::{CallStackInfo, Substate},
@@ -21,6 +18,8 @@ use cfx_state::StateTrait;
 use cfx_types::{Address, AddressSpaceUtil, AddressWithSpace, Space, H256, U256};
 use primitives::transaction::UNSIGNED_SENDER;
 use std::sync::Arc;
+
+use super::contract_address;
 
 /// Transaction properties that externalities need to know about.
 #[derive(Debug)]
@@ -57,13 +56,13 @@ pub struct Context<
 > {
     state: &'b mut dyn StateTrait,
     callstack: &'b mut CallStackInfo,
-    local_part: &'b mut LocalContext<'a>,
+    local_part: &'b mut FrameContext<'a>,
 }
 
 /// The `LocalContext` only contains the parameters can be owned by an
 /// executive. It will be never change during the lifetime of its corresponding
 /// executive.
-pub struct LocalContext<'a> {
+pub struct FrameContext<'a> {
     pub space: Space,
     pub env: &'a Env,
     pub depth: usize,
@@ -75,7 +74,7 @@ pub struct LocalContext<'a> {
     pub static_flag: bool,
 }
 
-impl<'a, 'b> LocalContext<'a> {
+impl<'a, 'b> FrameContext<'a> {
     pub fn new(
         space: Space,
         env: &'a Env,
@@ -87,7 +86,7 @@ impl<'a, 'b> LocalContext<'a> {
         is_create: bool,
         static_flag: bool,
     ) -> Self {
-        LocalContext {
+        FrameContext {
             space,
             env,
             depth,
@@ -201,7 +200,7 @@ impl<'a, 'b> ContextTrait for Context<'a, 'b> {
 
         let create_type = CreateType::from_address_scheme(&address_scheme);
         // create new contract address
-        let (address_with_space, code_hash) = self::contract_address(
+        let (address_with_space, code_hash) = contract_address(
             address_scheme,
             self.local_part.env.number.into(),
             &caller,
@@ -590,7 +589,7 @@ mod tests {
         let origin = get_test_origin();
         let mut callstack = CallStackInfo::new();
 
-        let mut lctx = LocalContext::new(
+        let mut lctx = FrameContext::new(
             Space::Native,
             &setup.env,
             &setup.machine,
@@ -613,7 +612,7 @@ mod tests {
         let origin = get_test_origin();
         let mut callstack = CallStackInfo::new();
 
-        let mut lctx = LocalContext::new(
+        let mut lctx = FrameContext::new(
             Space::Native,
             &setup.env,
             &setup.machine,
@@ -734,7 +733,7 @@ mod tests {
         let mut callstack = CallStackInfo::new();
 
         {
-            let mut lctx = LocalContext::new(
+            let mut lctx = FrameContext::new(
                 Space::Native,
                 &setup.env,
                 &setup.machine,
@@ -779,7 +778,7 @@ mod tests {
             .expect(&concat!(file!(), ":", line!(), ":", column!()));
 
         {
-            let mut lctx = LocalContext::new(
+            let mut lctx = FrameContext::new(
                 Space::Native,
                 &setup.env,
                 &setup.machine,

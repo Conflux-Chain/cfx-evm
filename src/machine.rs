@@ -5,7 +5,7 @@
 use super::builtin::Builtin;
 use crate::{
     builtin::{builtin_factory, AltBn128PairingPricer, Blake2FPricer, Linear, ModexpPricer},
-    executive::InternalContractMap,
+    internal_contract::InternalContractMap,
     spec::CommonParams,
     vm::Spec,
     vm_factory::VmFactory,
@@ -78,6 +78,7 @@ impl Machine {
     }
 }
 
+#[allow(unused)]
 pub fn new_machine(params: CommonParams, vm: VmFactory) -> Machine {
     Machine {
         params,

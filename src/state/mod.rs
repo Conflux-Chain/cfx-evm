@@ -27,7 +27,7 @@ use crate::hash::KECCAK_EMPTY;
 
 use self::account_entry::{AccountEntry, AccountState};
 pub use self::{
-    account_entry::{OverlayAccount, COMMISSION_PRIVILEGE_SPECIAL_KEY},
+    account_entry::OverlayAccount,
     substate::{cleanup_mode, CallStackInfo, Substate},
 };
 

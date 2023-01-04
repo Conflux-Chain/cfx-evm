@@ -1,5 +1,5 @@
 use crate::{
-    executive::revert_reason_decode,
+    execution::revert_reason_decode,
     observer::trace::{Action, Call, CallResult, Create, CreateResult, ExecTrace, Outcome},
 };
 use cfx_types::Address;

@@ -1,9 +1,10 @@
 use crate::{
+    call_create_frame::contract_address,
     evm::{
         ActionParams, CallType, Context, ContractCreateResult, CreateContractAddress, GasLeft,
         MessageCallResult, ReturnData,
     },
-    executive::{contract_address, executive::gas_required_for},
+    execution::gas_required_for,
     internal_bail,
     observer::{AddressPocket, VmObserve},
     state::cleanup_mode,

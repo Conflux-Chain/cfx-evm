@@ -1,9 +1,9 @@
 use crate::{
     builtin::Builtin,
-    evm::{CallType, Context, GasLeft, MessageCallResult, ReturnData},
-    executive::InternalContractTrait,
+    evm::{CallType, Context, GasLeft, ReturnData},
+    internal_contract::InternalContractTrait,
     observer::VmObserve,
-    vm::{ActionParams, Error as VmError, Exec, ExecTrapResult, ResumeCall, TrapResult},
+    vm::{ActionParams, Error as VmError, Exec, ExecTrapResult, TrapResult},
 };
 use cfx_bytes::BytesRef;
 use cfx_types::U256;
@@ -93,11 +93,5 @@ impl<'a> Exec for InternalContractExec<'a> {
         }
 
         result
-    }
-}
-
-impl<'a> ResumeCall for InternalContractExec<'a> {
-    fn resume_call(self: Box<Self>, _result: MessageCallResult) -> Box<dyn Exec> {
-        todo!()
     }
 }

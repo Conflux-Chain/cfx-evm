@@ -8,20 +8,13 @@ use crate::{
     state::{AccountEntryProtectedMethods, State},
 };
 use cfx_internal_common::debug::ComputeEpochDebugRecord;
-use cfx_statedb::StateDbTrait;
-use cfx_statedb::{Result as DbResult, StateDb, StateDbExt};
+use cfx_statedb::{Result as DbResult, StateDb, StateDbExt, StateDbTrait};
 #[cfg(test)]
 use cfx_types::AddressSpaceUtil;
-use cfx_types::{address_util::AddressUtil, Address, AddressWithSpace, H256, U256};
+use cfx_types::{address_util::AddressUtil, AddressWithSpace, H256, U256};
 use parking_lot::RwLock;
 use primitives::{is_default::IsDefault, Account, CodeInfo, StateKey, StorageLayout, StorageValue};
 use std::{collections::HashMap, sync::Arc};
-
-lazy_static! {
-    static ref COMMISSION_PRIVILEGE_STORAGE_VALUE: U256 = U256::one();
-    /// If we set this key, it means every account has commission privilege.
-    pub static ref COMMISSION_PRIVILEGE_SPECIAL_KEY: Address = Address::zero();
-}
 
 #[derive(Debug)]
 /// Single account in the system.

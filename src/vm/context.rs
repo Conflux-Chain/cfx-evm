@@ -28,7 +28,7 @@ use super::{
     spec::Spec,
     Error,
 };
-use crate::{executive::internal_contract::InternalRefContext, observer::VmObserve};
+use crate::{internal_contract::InternalRefContext, observer::VmObserve};
 use cfx_bytes::Bytes;
 use cfx_types::{Address, AddressWithSpace, Space, H256, U256};
 use std::sync::Arc;

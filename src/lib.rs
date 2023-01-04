@@ -9,15 +9,18 @@ extern crate log;
 extern crate error_chain;
 
 mod builtin;
+mod call_create_frame;
 mod evm;
-mod executive;
-pub mod machine;
+pub mod execution;
+mod internal_contract;
+mod machine;
 pub mod observer;
 mod spec;
 mod state;
 pub mod vm;
 mod vm_factory;
 
-pub use executive::Executive;
+pub use execution::TXExecutor;
+pub use machine::new_machine_with_builtin;
 pub use state::State;
 pub use vm::Env;
