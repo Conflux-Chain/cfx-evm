@@ -38,7 +38,7 @@ pub trait StateDbExt: StateDbTrait {
         if value.is_default() {
             self.delete(key, debug_record)
         } else {
-            self.set_raw(key, ::rlp::encode(value).into_boxed_slice(), debug_record)
+            self.set_raw(key, Vec::<u8>::from(::rlp::encode(value)).into_boxed_slice(), debug_record)
         }
     }
 

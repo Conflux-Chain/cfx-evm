@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 cfx-types = {path = "../cfx_types"}
-keccak-hash = "0.5"
+keccak-hash = "0.10"
 solidity-abi-derive = {path = "../solidity-abi-derive"}
 
 [dev-dependencies]

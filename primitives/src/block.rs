@@ -139,7 +139,7 @@ impl Block {
         for tx in &self.transactions {
             stream.append(tx.as_ref());
         }
-        stream.drain()
+        stream.out().into()
     }
 
     pub fn decode_body_with_tx_public(
@@ -164,7 +164,7 @@ impl Block {
             .begin_list(2)
             .append(&self.block_header)
             .append_raw(&*self.encode_body_with_tx_public(), 1);
-        stream.drain()
+        stream.out().into()
     }
 
     pub fn decode_with_tx_public(rlp: &Rlp) -> Result<Self, DecoderError> {

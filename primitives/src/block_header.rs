@@ -227,14 +227,14 @@ impl BlockHeader {
     }
 
     /// Get the RLP representation of this header(except nonce).
-    pub fn rlp_without_nonce(&self) -> Bytes {
+    pub fn rlp_without_nonce(&self) -> impl AsRef<[u8]> {
         let mut stream = RlpStream::new();
         self.stream_rlp_without_nonce(&mut stream);
         stream.out()
     }
 
     /// Get the RLP representation of this header.
-    pub fn rlp(&self) -> Bytes {
+    pub fn rlp(&self) -> impl AsRef<[u8]> {
         let mut stream = RlpStream::new();
         self.stream_rlp(&mut stream);
         stream.out()
