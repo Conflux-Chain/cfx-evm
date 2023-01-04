@@ -7,7 +7,7 @@ use cfx_types::{Address, AddressWithSpace, Space, U256};
 
 /// The result contains more data than finalization result.
 #[derive(Debug)]
-pub struct FrameResult {
+pub struct FrameReturn {
     /// Space
     pub space: Space,
     /// Final amount of gas left.
@@ -20,7 +20,7 @@ pub struct FrameResult {
     pub create_address: Option<Address>,
 }
 
-impl Into<FinalizationResult> for FrameResult {
+impl Into<FinalizationResult> for FrameReturn {
     fn into(self) -> FinalizationResult {
         FinalizationResult {
             space: self.space,
@@ -31,9 +31,9 @@ impl Into<FinalizationResult> for FrameResult {
     }
 }
 
-impl FrameResult {
+impl FrameReturn {
     pub(super) fn new(result: FinalizationResult, create_address: Option<Address>) -> Self {
-        FrameResult {
+        FrameReturn {
             space: result.space,
             gas_left: result.gas_left,
             apply_state: result.apply_state,
@@ -44,15 +44,15 @@ impl FrameResult {
 }
 
 /// Convert a finalization result into a VM message call result.
-pub fn into_message_call_result(result: vm::Result<FrameResult>) -> vm::MessageCallResult {
+pub fn into_message_call_result(result: vm::Result<FrameReturn>) -> vm::MessageCallResult {
     match result {
-        Ok(FrameResult {
+        Ok(FrameReturn {
             gas_left,
             return_data,
             apply_state: true,
             ..
         }) => vm::MessageCallResult::Success(gas_left, return_data),
-        Ok(FrameResult {
+        Ok(FrameReturn {
             gas_left,
             return_data,
             apply_state: false,
@@ -63,9 +63,9 @@ pub fn into_message_call_result(result: vm::Result<FrameResult>) -> vm::MessageC
 }
 
 /// Convert a finalization result into a VM contract create result.
-pub fn into_contract_create_result(result: vm::Result<FrameResult>) -> vm::ContractCreateResult {
+pub fn into_contract_create_result(result: vm::Result<FrameReturn>) -> vm::ContractCreateResult {
     match result {
-        Ok(FrameResult {
+        Ok(FrameReturn {
             space,
             gas_left,
             apply_state: true,
@@ -78,7 +78,7 @@ pub fn into_contract_create_result(result: vm::Result<FrameResult>) -> vm::Contr
             let address = AddressWithSpace { address, space };
             vm::ContractCreateResult::Created(address, gas_left)
         }
-        Ok(FrameResult {
+        Ok(FrameReturn {
             gas_left,
             apply_state: false,
             return_data,

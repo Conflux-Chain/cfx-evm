@@ -54,6 +54,8 @@ pub enum ToRepackError {
 pub enum TxDropError {
     /// The account nonce in world-state is larger than tx nonce
     OldNonce(U256, U256),
+    ///
+    NotEnoughBaseGas { expected: u64, actual: u64 },
 }
 
 #[derive(Debug, PartialEq)]

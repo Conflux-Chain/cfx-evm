@@ -8,7 +8,7 @@ use solidity_abi::{ABIDecodable, ABIEncodable};
 
 use crate::{
     observer::VmObserve,
-    state::CallStackInfo,
+    state::FrameStackInfo,
     vm::{self, ActionParams, CallType, ExecTrapResult, GasLeft, ReturnData, Spec, TrapResult},
 };
 
@@ -135,7 +135,7 @@ pub trait PreExecCheckTrait: Send + Sync {
     fn pre_execution_check(
         &self,
         params: &ActionParams,
-        call_stack: &CallStackInfo,
+        call_stack: &FrameStackInfo,
         context: &Spec,
     ) -> vm::Result<()>;
 }
@@ -199,7 +199,7 @@ impl<T: PreExecCheckConfTrait> PreExecCheckTrait for T {
     fn pre_execution_check(
         &self,
         params: &ActionParams,
-        _call_stack: &CallStackInfo,
+        _call_stack: &FrameStackInfo,
         _spec: &Spec,
     ) -> vm::Result<()> {
         if !Self::PAYABLE && !params.value.value().is_zero() {

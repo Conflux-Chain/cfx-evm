@@ -52,7 +52,7 @@ where
     }
 }
 
-impl<S, T> StateTracer for (&mut S, &mut T)
+impl<S, T> StateTracer for (S, T)
 where
     S: StateTracer,
     T: StateTracer,

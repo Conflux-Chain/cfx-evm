@@ -1,13 +1,12 @@
 use super::executed::{Executed, ExecutionError, ExecutionOutcome, ToRepackError, TxDropError};
 use super::TransactOptions;
-use crate::call_create_frame::{contract_address, start_exec_frames, CallCreateFrame};
+use crate::call_create_frame::{contract_address, CallCreateFrame, FrameStack, FrameStackOutput};
 
 use crate::vm_factory::VmFactory;
 use crate::{
-    bytes::Bytes,
     evm::FinalizationResult,
     machine::Machine,
-    observer::{AddressPocket, MultiObservers as Observer, StateTracer},
+    observer::{AddressPocket, StateTracer},
     state::{cleanup_mode, Substate},
     vm::{self, ActionParams, ActionValue, CallType, CreateContractAddress, CreateType, Env, Spec},
 };
@@ -29,8 +28,6 @@ pub struct TXExecutor<'a> {
     machine: &'a Machine,
     factory: VmFactory,
     pub(super) spec: &'a Spec,
-    depth: usize,
-    static_flag: bool,
 }
 
 pub fn gas_required_for(is_create: bool, data: &[u8], spec: &Spec) -> u64 {
@@ -49,6 +46,14 @@ pub fn gas_required_for(is_create: bool, data: &[u8], spec: &Spec) -> u64 {
     )
 }
 
+enum PreCheckResult<'a> {
+    Pass {
+        top_frame: CallCreateFrame<'a>,
+        frame_stack: FrameStack<'a>,
+    },
+    Fail(ExecutionOutcome),
+}
+
 impl<'a> TXExecutor<'a> {
     /// Basic constructor.
     pub fn new(
@@ -63,8 +68,6 @@ impl<'a> TXExecutor<'a> {
             machine,
             factory: machine.vm_factory(),
             spec,
-            depth: 0,
-            static_flag: false,
         }
     }
 
@@ -73,35 +76,60 @@ impl<'a> TXExecutor<'a> {
         tx: &SignedTransaction,
         options: TransactOptions,
     ) -> DbResult<ExecutionOutcome> {
+        let pre_check_result = self.transact_preprocessing(tx, options)?;
+
+        let (top_frame, frame_stack) = match pre_check_result {
+            PreCheckResult::Pass {
+                top_frame,
+                frame_stack,
+            } => (top_frame, frame_stack),
+            PreCheckResult::Fail(outcome) => {
+                return Ok(outcome);
+            }
+        };
+
+        let frame_stack_output = frame_stack.exec(top_frame)?;
+
+        Ok(self.transact_postprocessing(tx, frame_stack_output)?)
+    }
+
+    fn transact_preprocessing(
+        &mut self,
+        tx: &SignedTransaction,
+        options: TransactOptions,
+    ) -> DbResult<PreCheckResult> {
         let TransactOptions {
             mut observer,
             check_settings,
         } = options;
 
-        let spec = &self.spec;
+        let spec = self.spec;
         let sender = tx.sender();
         let nonce = self.state.nonce(&sender)?;
 
         // Validate transaction nonce
         if *tx.nonce() < nonce {
-            return Ok(ExecutionOutcome::NotExecutedDrop(TxDropError::OldNonce(
-                nonce,
-                *tx.nonce(),
+            return Ok(PreCheckResult::Fail(ExecutionOutcome::NotExecutedDrop(
+                TxDropError::OldNonce(nonce, *tx.nonce()),
             )));
         } else if *tx.nonce() > nonce {
-            return Ok(ExecutionOutcome::NotExecutedToReconsiderPacking(
-                ToRepackError::InvalidNonce {
+            return Ok(PreCheckResult::Fail(
+                ExecutionOutcome::NotExecutedToReconsiderPacking(ToRepackError::InvalidNonce {
                     expected: nonce,
                     got: *tx.nonce(),
-                },
+                }),
             ));
         }
 
         let base_gas_required = gas_required_for(tx.action() == &Action::Create, &tx.data(), spec);
-        assert!(
-            *tx.gas() >= base_gas_required.into(),
-            "We have already checked the base gas requirement when we received the block."
-        );
+        if *tx.gas() >= base_gas_required.into() {
+            return Ok(PreCheckResult::Fail(ExecutionOutcome::NotExecutedDrop(
+                TxDropError::NotEnoughBaseGas {
+                    expected: tx.gas().as_u64(),
+                    actual: base_gas_required,
+                },
+            )));
+        }
 
         let balance = self.state.balance(&sender)?;
         let gas_cost = if check_settings.charge_gas {
@@ -125,8 +153,10 @@ impl<'a> TXExecutor<'a> {
             // can't charge gas fee. In this case, the sender account will
             // not be created if it does not exist.
             if !self.state.exists(&sender)? && check_settings.real_execution {
-                return Ok(ExecutionOutcome::NotExecutedToReconsiderPacking(
-                    ToRepackError::SenderDoesNotExist,
+                return Ok(PreCheckResult::Fail(
+                    ExecutionOutcome::NotExecutedToReconsiderPacking(
+                        ToRepackError::SenderDoesNotExist,
+                    ),
                 ));
             }
             self.state
@@ -142,17 +172,19 @@ impl<'a> TXExecutor<'a> {
                 actual_gas_cost,
             );
 
-            return Ok(ExecutionOutcome::ExecutionErrorBumpNonce(
-                ExecutionError::NotEnoughCash {
-                    required: total_cost,
-                    got: sender_balance,
-                    actual_gas_cost: actual_gas_cost.clone(),
-                },
-                Executed::not_enough_balance_fee_charged(
-                    tx,
-                    &actual_gas_cost,
-                    observer.tracer.map_or(Default::default(), |t| t.drain()),
-                    &self.spec,
+            return Ok(PreCheckResult::Fail(
+                ExecutionOutcome::ExecutionErrorBumpNonce(
+                    ExecutionError::NotEnoughCash {
+                        required: total_cost,
+                        got: sender_balance,
+                        actual_gas_cost: actual_gas_cost.clone(),
+                    },
+                    Executed::not_enough_balance_fee_charged(
+                        tx,
+                        &actual_gas_cost,
+                        observer.tracer.map_or(Default::default(), |t| t.drain()),
+                        &self.spec,
+                    ),
                 ),
             ));
         } else {
@@ -217,8 +249,8 @@ impl<'a> TXExecutor<'a> {
                     self.machine,
                     self.spec,
                     &self.factory,
-                    self.depth,
-                    self.static_flag,
+                    0,     /* depth */
+                    false, /* static_flag */
                 )
             }
             Action::Call(ref address) => {
@@ -245,18 +277,33 @@ impl<'a> TXExecutor<'a> {
                     self.machine,
                     self.spec,
                     &self.factory,
-                    self.depth,
-                    self.static_flag,
+                    0,     /* depth */
+                    false, /* static_flag */
                 )
             }
         };
 
-        let result = start_exec_frames(
+        let frame_stack = FrameStack::new(self.state, tx_substate, observer, base_gas_required);
+
+        Ok(PreCheckResult::Pass {
             top_frame,
-            self.state,
-            &mut tx_substate,
-            &mut *observer.as_vm_observe(),
-        )?;
+            frame_stack,
+        })
+    }
+
+    /// Finalizes the transaction (does refunds and suicides).
+    fn transact_postprocessing(
+        &mut self,
+        tx: &SignedTransaction,
+        frame_stack_output: FrameStackOutput,
+    ) -> DbResult<ExecutionOutcome> {
+        let FrameStackOutput {
+            mut substate,
+            result,
+            mut observer,
+            base_gas_required,
+        } = frame_stack_output;
+
         let output = result
             .as_ref()
             .map(|res| res.return_data.to_vec())
@@ -267,50 +314,6 @@ impl<'a> TXExecutor<'a> {
             .as_ref()
             .map(|g| g.gas_required() * 7 / 6 + base_gas_required);
 
-        Ok(self.finalize(
-            tx,
-            tx_substate,
-            result,
-            output,
-            observer,
-            estimated_gas_limit,
-        )?)
-    }
-
-    // TODO: maybe we can find a better interface for doing the suicide
-    // post-processing.
-    fn kill_process(
-        &mut self,
-        suicides: &HashSet<AddressWithSpace>,
-        tracer: &mut dyn StateTracer,
-    ) -> DbResult<Substate> {
-        let substate = Substate::new();
-
-        for contract_address in suicides {
-            let contract_balance = self.state.balance(contract_address)?;
-            tracer.trace_internal_transfer(
-                AddressPocket::Balance(*contract_address),
-                AddressPocket::MintBurn,
-                contract_balance.clone(),
-            );
-
-            self.state.remove_contract(contract_address)?;
-            self.state.subtract_total_issued(contract_balance);
-        }
-
-        Ok(substate)
-    }
-
-    /// Finalizes the transaction (does refunds and suicides).
-    fn finalize(
-        &mut self,
-        tx: &SignedTransaction,
-        mut substate: Substate,
-        result: vm::Result<FinalizationResult>,
-        output: Bytes,
-        mut observer: Observer,
-        estimated_gas_limit: Option<U256>,
-    ) -> DbResult<ExecutionOutcome> {
         let gas_left = match result {
             Ok(FinalizationResult { gas_left, .. }) => gas_left,
             _ => 0.into(),
@@ -412,5 +415,29 @@ impl<'a> TXExecutor<'a> {
                 }
             }
         }
+    }
+
+    // TODO: maybe we can find a better interface for doing the suicide
+    // post-processing.
+    fn kill_process(
+        &mut self,
+        suicides: &HashSet<AddressWithSpace>,
+        tracer: &mut dyn StateTracer,
+    ) -> DbResult<Substate> {
+        let substate = Substate::new();
+
+        for contract_address in suicides {
+            let contract_balance = self.state.balance(contract_address)?;
+            tracer.trace_internal_transfer(
+                AddressPocket::Balance(*contract_address),
+                AddressPocket::MintBurn,
+                contract_balance.clone(),
+            );
+
+            self.state.remove_contract(contract_address)?;
+            self.state.subtract_total_issued(contract_balance);
+        }
+
+        Ok(substate)
     }
 }

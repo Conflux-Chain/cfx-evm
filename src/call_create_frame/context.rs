@@ -8,7 +8,7 @@ use crate::{
     internal_contract::{suicide as suicide_impl, InternalRefContext},
     machine::Machine,
     observer::VmObserve,
-    state::{CallStackInfo, Substate},
+    state::{FrameStackInfo, Substate},
     vm::{
         self, ActionParams, ActionValue, CallType, Context as ContextTrait, ContractCreateResult,
         CreateContractAddress, CreateType, Env, MessageCallResult, ReturnData, Spec, TrapKind,
@@ -55,7 +55,7 @@ pub struct Context<
     'b, /* Lifetime of call-create executive. */
 > {
     state: &'b mut dyn StateTrait,
-    callstack: &'b mut CallStackInfo,
+    callstack: &'b mut FrameStackInfo,
     local_part: &'b mut FrameContext<'a>,
 }
 
@@ -106,7 +106,7 @@ impl<'a, 'b> FrameContext<'a> {
     pub fn activate(
         &'b mut self,
         state: &'b mut dyn StateTrait,
-        callstack: &'b mut CallStackInfo,
+        callstack: &'b mut FrameStackInfo,
     ) -> Context<'a, 'b> {
         Context {
             state,
@@ -500,7 +500,7 @@ mod tests {
     use super::{LocalContext, OriginInfo};
     use crate::{
         machine::{new_machine_with_builtin, Machine},
-        state::{CallStackInfo, State, Substate},
+        state::{FrameStackInfo, State, Substate},
         test_helpers::get_state_for_genesis_write,
         vm::{Context as ContextTrait, Env, Spec},
     };
@@ -548,7 +548,7 @@ mod tests {
         spec: Spec,
         substate: Substate,
         env: Env,
-        callstack: CallStackInfo,
+        callstack: FrameStackInfo,
     }
 
     impl TestSetup {
@@ -558,7 +558,7 @@ mod tests {
             let machine = new_machine_with_builtin(Default::default(), Default::default());
             let env = get_test_env();
             let spec = machine.spec(env.number);
-            let callstack = CallStackInfo::new();
+            let callstack = FrameStackInfo::new();
 
             let mut setup = Self {
                 storage_manager,
@@ -587,7 +587,7 @@ mod tests {
         let mut setup = TestSetup::new();
         let state = &mut setup.state;
         let origin = get_test_origin();
-        let mut callstack = CallStackInfo::new();
+        let mut callstack = FrameStackInfo::new();
 
         let mut lctx = FrameContext::new(
             Space::Native,
@@ -610,7 +610,7 @@ mod tests {
         let mut setup = TestSetup::new();
         let state = &mut setup.state;
         let origin = get_test_origin();
-        let mut callstack = CallStackInfo::new();
+        let mut callstack = FrameStackInfo::new();
 
         let mut lctx = FrameContext::new(
             Space::Native,
@@ -730,7 +730,7 @@ mod tests {
         let mut setup = TestSetup::new();
         let state = &mut setup.state;
         let origin = get_test_origin();
-        let mut callstack = CallStackInfo::new();
+        let mut callstack = FrameStackInfo::new();
 
         {
             let mut lctx = FrameContext::new(
@@ -758,7 +758,7 @@ mod tests {
         let mut setup = TestSetup::new();
         let state = &mut setup.state;
         let mut origin = get_test_origin();
-        let mut callstack = CallStackInfo::new();
+        let mut callstack = FrameStackInfo::new();
 
         let mut contract_address = Address::zero();
         contract_address.set_contract_type_bits();

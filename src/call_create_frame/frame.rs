@@ -4,18 +4,18 @@
 
 use super::{
     context::{FrameContext, OriginInfo},
-    exec::{BuiltinExec, InternalContractExec, NoopExec},
-    result::{into_contract_create_result, into_message_call_result, FrameResult},
+    executive::{BuiltinExec, InternalContractExec, NoopExec},
+    result::{into_contract_create_result, into_message_call_result, FrameReturn},
 };
 
 use crate::{
     builtin::Builtin,
-    evm::{FinalizationResult, Finalize},
+    evm::Finalize,
     hash::keccak,
     internal_contract::InternalContractTrait,
     machine::Machine,
     observer::VmObserve,
-    state::{cleanup_mode, CallStackInfo, Substate},
+    state::{cleanup_mode, FrameStackInfo, Substate},
     vm::{
         self, ActionParams, ActionValue, CallType, CreateContractAddress, Env, Exec, ExecTrapError,
         ExecTrapResult, GasLeft, ResumeCall, ResumeCreate, Spec, TrapError, TrapResult,
@@ -311,14 +311,14 @@ impl<'a> CallCreateFrame<'a> {
         result: vm::Result<GasLeft>,
         state: &mut dyn StateTrait,
         parent_substate: &mut Substate,
-        callstack: &mut CallStackInfo,
+        callstack: &mut FrameStackInfo,
         tracer: &mut dyn VmObserve,
-    ) -> DbResult<vm::Result<FrameResult>> {
+    ) -> DbResult<vm::Result<FrameReturn>> {
         let context = self.context.activate(state, callstack);
         // The post execution task in spec is completed here.
         let finalized_result = result.finalize(context);
         let executive_result =
-            finalized_result.map(|result| FrameResult::new(result, self.create_address));
+            finalized_result.map(|result| FrameReturn::new(result, self.create_address));
 
         self.status = FrameStatus::Done;
 
@@ -372,9 +372,9 @@ impl<'a> CallCreateFrame<'a> {
         mut self,
         state: &mut dyn StateTrait,
         parent_substate: &mut Substate,
-        callstack: &mut CallStackInfo,
+        callstack: &mut FrameStackInfo,
         tracer: &mut dyn VmObserve,
-    ) -> DbResult<FrameTrapResult<'a, FrameResult>> {
+    ) -> DbResult<FrameTrapResult<'a>> {
         let status = std::mem::replace(&mut self.status, FrameStatus::Running);
         let params = if let FrameStatus::Input(params) = status {
             params
@@ -450,12 +450,12 @@ impl<'a> CallCreateFrame<'a> {
 
     pub fn resume(
         mut self,
-        result: vm::Result<FrameResult>,
+        result: vm::Result<FrameReturn>,
         state: &mut dyn StateTrait,
         parent_substate: &mut Substate,
-        callstack: &mut CallStackInfo,
+        callstack: &mut FrameStackInfo,
         tracer: &mut dyn VmObserve,
-    ) -> DbResult<FrameTrapResult<'a, FrameResult>> {
+    ) -> DbResult<FrameTrapResult<'a>> {
         let status = std::mem::replace(&mut self.status, FrameStatus::Running);
 
         // TODO: Substate from sub-call should have been merged here by
@@ -498,9 +498,9 @@ impl<'a> CallCreateFrame<'a> {
         output: ExecTrapResult<GasLeft>,
         state: &mut dyn StateTrait,
         parent_substate: &mut Substate,
-        callstack: &mut CallStackInfo,
+        callstack: &mut FrameStackInfo,
         tracer: &mut dyn VmObserve,
-    ) -> DbResult<FrameTrapResult<'a, FrameResult>> {
+    ) -> DbResult<FrameTrapResult<'a>> {
         // Convert the `ExecTrapResult` (result of evm) to `ExecutiveTrapResult`
         // (result of self).
         let trap_result = match output {
@@ -551,52 +551,8 @@ impl<'a> CallCreateFrame<'a> {
     }
 }
 
-/// Execute the top call-create executive. This function handles resume
-/// traps and sub-level tracing. The caller is expected to handle
-/// current-level tracing.
-pub fn start_exec_frames<'a>(
-    top_frame: CallCreateFrame,
-    state: &'a mut dyn StateTrait,
-    top_substate: &mut Substate,
-    tracer: &mut dyn VmObserve,
-) -> DbResult<vm::Result<FinalizationResult>> {
-    let mut callstack = CallStackInfo::new();
-    let mut executive_stack: Vec<CallCreateFrame> = Vec::new();
-
-    let mut last_res = top_frame.exec(state, top_substate, &mut callstack, tracer)?;
-
-    loop {
-        match last_res {
-            TrapResult::Return(result) => {
-                let parent = match executive_stack.pop() {
-                    Some(x) => x,
-                    None => {
-                        return Ok(result.map(|result| result.into()));
-                    }
-                };
-
-                let parent_substate = executive_stack
-                    .last_mut()
-                    .map_or(&mut *top_substate, |parent| parent.unconfirmed_substate());
-
-                last_res = parent.resume(result, state, parent_substate, &mut callstack, tracer)?;
-            }
-            TrapResult::SubCallCreate(trap_err) => {
-                let (callee, caller) = CallCreateFrame::from_trap_error(trap_err);
-                executive_stack.push(caller);
-
-                let parent_substate = executive_stack
-                    .last_mut()
-                    .expect("Last executive is `caller`, it will never be None")
-                    .unconfirmed_substate();
-
-                last_res = callee.exec(state, parent_substate, &mut callstack, tracer)?;
-            }
-        }
-    }
-}
-
 /// Trap result returned by executive.
-pub type FrameTrapResult<'a, T> = vm::TrapResult<T, CallCreateFrame<'a>, CallCreateFrame<'a>>;
+pub type FrameTrapResult<'a> =
+    vm::TrapResult<FrameReturn, CallCreateFrame<'a>, CallCreateFrame<'a>>;
 
 pub type FrameTrapError<'a> = vm::TrapError<CallCreateFrame<'a>, CallCreateFrame<'a>>;

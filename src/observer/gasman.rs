@@ -1,6 +1,6 @@
 use super::VmObserve;
 use crate::{
-    call_create_frame::FrameResult,
+    call_create_frame::FrameReturn,
     vm::{ActionParams, Result as VmResult},
 };
 use cfx_parameters::{
@@ -98,7 +98,7 @@ impl VmObserve for GasMan {
         self.record_call_create(&params.gas, cross_space_internal);
     }
 
-    fn record_call_result(&mut self, result: &VmResult<FrameResult>) {
+    fn record_call_result(&mut self, result: &VmResult<FrameReturn>) {
         let gas_left = result.as_ref().map_or(U256::zero(), |r| r.gas_left.clone());
         self.record_return(&gas_left);
     }
@@ -107,7 +107,7 @@ impl VmObserve for GasMan {
         self.record_call_create(&params.gas, false);
     }
 
-    fn record_create_result(&mut self, result: &VmResult<FrameResult>) {
+    fn record_create_result(&mut self, result: &VmResult<FrameReturn>) {
         let gas_left = result.as_ref().map_or(U256::zero(), |r| r.gas_left.clone());
         self.record_return(&gas_left);
     }

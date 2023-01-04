@@ -9,14 +9,14 @@ use primitives::LogEntry;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
-pub struct CallStackInfo {
+pub struct FrameStackInfo {
     call_stack_recipient_addresses: Vec<(AddressWithSpace, bool)>,
     address_counter: HashMap<AddressWithSpace, u32>,
 }
 
-impl CallStackInfo {
+impl FrameStackInfo {
     pub fn new() -> Self {
-        CallStackInfo {
+        FrameStackInfo {
             call_stack_recipient_addresses: Vec::default(),
             address_counter: HashMap::default(),
         }
@@ -99,7 +99,7 @@ pub fn cleanup_mode<'a>(substate: &'a mut Substate, spec: &Spec) -> CleanupMode<
 
 #[cfg(test)]
 mod tests {
-    use super::CallStackInfo;
+    use super::FrameStackInfo;
     use crate::state::Substate;
     use cfx_state::substate_trait::SubstateMngTrait;
     use cfx_types::{Address, AddressSpaceUtil, AddressWithSpace, Space};
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_callstack_info() {
-        let mut call_stack = CallStackInfo::new();
+        let mut call_stack = FrameStackInfo::new();
         call_stack.push(get_test_address(1), false);
         call_stack.push(get_test_address(2), false);
         assert_eq!(call_stack.pop(), Some((get_test_address(2), false)));

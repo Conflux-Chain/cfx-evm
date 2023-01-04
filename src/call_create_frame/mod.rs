@@ -1,10 +1,12 @@
 mod context;
-mod exec;
+mod executive;
 mod frame;
 mod result;
+mod stack;
 
 #[cfg(test)]
 mod tests;
 
-pub use frame::{contract_address, start_exec_frames, CallCreateFrame};
-pub use result::FrameResult;
+pub use frame::{contract_address, CallCreateFrame};
+pub use result::FrameReturn;
+pub use stack::{FrameStack, FrameStackOutput};
