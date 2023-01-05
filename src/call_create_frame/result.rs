@@ -1,5 +1,6 @@
 use crate::{
     evm::FinalizationResult,
+    state::Substate,
     vm::{self, ReturnData},
 };
 
@@ -18,6 +19,8 @@ pub struct FrameReturn {
     pub return_data: ReturnData,
     /// Create address.
     pub create_address: Option<Address>,
+    /// Substate
+    pub substate: Option<Substate>,
 }
 
 impl Into<FinalizationResult> for FrameReturn {
@@ -32,13 +35,26 @@ impl Into<FinalizationResult> for FrameReturn {
 }
 
 impl FrameReturn {
-    pub(super) fn new(result: FinalizationResult, create_address: Option<Address>) -> Self {
+    pub(super) fn new(
+        result: FinalizationResult,
+        create_address: Option<Address>,
+        substate: Option<Substate>,
+    ) -> Self {
         FrameReturn {
             space: result.space,
             gas_left: result.gas_left,
             apply_state: result.apply_state,
             return_data: result.return_data,
             create_address,
+            substate,
+        }
+    }
+}
+
+pub fn accrue_substate(parent_substate: &mut Substate, result: &mut vm::Result<FrameReturn>) {
+    if let Ok(frame_return) = result {
+        if let Some(substate) = std::mem::take(&mut frame_return.substate) {
+            parent_substate.accrue(substate);
         }
     }
 }

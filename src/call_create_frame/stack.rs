@@ -1,5 +1,6 @@
 use super::{
     frame::{CallCreateFrame, FrameTrapResult},
+    result::accrue_substate,
     FrameReturn,
 };
 
@@ -17,7 +18,7 @@ pub struct FrameStack<'a> {
     state: &'a mut dyn StateTrait,
     frame_stack: Vec<CallCreateFrame<'a>>,
     callstack: FrameStackInfo,
-    top_substate: Substate,
+    tx_substate: Substate,
     observer: Observer,
     base_gas_required: u64,
 }
@@ -39,6 +40,7 @@ impl From<CrossVmResult> for vm::Result<FrameReturn> {
             apply_state: todo!(),
             return_data: todo!(),
             create_address: None,
+            substate: None,
         })
     }
 }
@@ -54,7 +56,7 @@ impl<'a> FrameStack<'a> {
             state,
             frame_stack: vec![],
             callstack: FrameStackInfo::new(),
-            top_substate,
+            tx_substate: top_substate,
             observer,
             base_gas_required,
         }
@@ -66,7 +68,6 @@ impl<'a> FrameStack<'a> {
     pub fn exec(mut self, top_frame: CallCreateFrame<'a>) -> DbResult<FrameStackOutput> {
         let last_res = top_frame.exec(
             self.state,
-            &mut self.top_substate,
             &mut self.callstack,
             &mut *self.observer.as_vm_observe(),
         )?;
@@ -80,13 +81,12 @@ impl<'a> FrameStack<'a> {
         let parent_substate = self
             .frame_stack
             .last_mut()
-            .map_or(&mut self.top_substate, |parent| {
+            .map_or(&mut self.tx_substate, |parent| {
                 parent.unconfirmed_substate()
             });
         let last_res = first_frame.resume(
             cross_vm_result.into(),
             self.state,
-            parent_substate,
             &mut self.callstack,
             &mut *self.observer.as_vm_observe(),
         )?;
@@ -104,17 +104,9 @@ impl<'a> FrameStack<'a> {
                         }
                     };
 
-                    let parent_substate = self
-                        .frame_stack
-                        .last_mut()
-                        .map_or(&mut self.top_substate, |parent| {
-                            parent.unconfirmed_substate()
-                        });
-
                     parent.resume(
                         result,
                         self.state,
-                        parent_substate,
                         &mut self.callstack,
                         &mut *self.observer.as_vm_observe(),
                     )?
@@ -123,15 +115,8 @@ impl<'a> FrameStack<'a> {
                     let (callee, caller) = CallCreateFrame::from_trap_error(trap_err);
                     self.frame_stack.push(caller);
 
-                    let parent_substate = self
-                        .frame_stack
-                        .last_mut()
-                        .expect("Last frame is `caller`, it will never be None")
-                        .unconfirmed_substate();
-
                     callee.exec(
                         self.state,
-                        parent_substate,
                         &mut self.callstack,
                         &mut *self.observer.as_vm_observe(),
                     )?
@@ -140,10 +125,11 @@ impl<'a> FrameStack<'a> {
         }
     }
 
-    fn process_return(self, result: vm::Result<FrameReturn>) -> FrameStackOutput {
+    fn process_return(mut self, mut result: vm::Result<FrameReturn>) -> FrameStackOutput {
+        accrue_substate(&mut self.tx_substate, &mut result);
         return FrameStackOutput {
             result: result.map(|result| result.into()),
-            substate: self.top_substate,
+            substate: self.tx_substate,
             observer: self.observer,
             base_gas_required: self.base_gas_required,
         };
