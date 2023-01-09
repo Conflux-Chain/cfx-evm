@@ -21,6 +21,9 @@ pub mod vm;
 mod vm_factory;
 
 pub use execution::TXExecutor;
+pub use execution::{ExecutionOutcome, TransactOptions};
 pub use machine::new_machine_with_builtin;
+pub use spec::CommonParams;
 pub use state::State;
 pub use vm::Env;
+pub use vm_factory::VmFactory;

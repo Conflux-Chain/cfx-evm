@@ -6,25 +6,22 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cfx-bytes = { path = "cfx_bytes" }
-cfx-types = { path = "cfx_types" }
-cfx-parameters = { path = "parameters" }
-cfxkey = { path = "cfxkey"}
-solidity-abi = { path = "solidity-abi" }
-solidity-abi-derive = { path = "solidity-abi-derive" }
-memory-cache = { path = "memory-cache" }
-primitives = { path = "primitives" }
-sha3-macro = { path = "sha3-macro" }
-malloc_size_of = {path = "malloc_size_of"}
-malloc_size_of_derive = {path = "malloc_size_of_derive"}
+cfx-bytes = { path = "utils/cfx_bytes" }
+cfx-types = { path = "utils/cfx_types" }
+cfx-parameters = { path = "utils/parameters" }
+cfxkey = { path = "utils/cfxkey"}
+solidity-abi = { path = "utils/solidity-abi" }
+solidity-abi-derive = { path = "utils/solidity-abi-derive" }
+memory-cache = { path = "utils/memory-cache" }
+primitives = { path = "utils/primitives" }
+sha3-macro = { path = "utils/sha3-macro" }
+malloc_size_of = {path = "utils/malloc_size_of"}
+malloc_size_of_derive = {path = "utils/malloc_size_of_derive"}
+cfx-internal-common = { path = "utils/internal-common" }
 
-cfx-statedb = { path = "statedb" }
-cfx-state = { path = "state" }
-cfx-storage = { path = "storage" }
-cfx-internal-common = { path = "internal-common" }
-# cfx-utils = { git = "https://github.com/Conflux-Chain/conflux-rust", rev="8ac4b7f"}
-
-
+cfx-statedb = { path = "backend/statedb" }
+cfx-state = { path = "backend/state" }
+cfx-storage = { path = "backend/storage" }
 
 substrate-bn = { git = "https://github.com/paritytech/bn", default-features = false, rev="63f8c587356a67b33c7396af98e065b66fca5dda" }
 byteorder = "1.0"

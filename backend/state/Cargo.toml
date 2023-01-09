@@ -7,20 +7,20 @@ version = "1.0.0"
 edition = "2018"
 
 [dependencies]
-cfx-internal-common = { path = "../internal-common" }
+cfx-internal-common = { path = "../../utils/internal-common" }
 
-cfx-parameters = { path = "../parameters" }
+cfx-parameters = { path = "../../utils/parameters" }
 cfx-storage = { path = "../storage"}
 cfx-statedb = { path = "../statedb" }
-cfx-types = { path = "../cfx_types" }
+cfx-types = { path = "../../utils/cfx_types" }
 parking_lot = "0.11"
-primitives = { path = "../primitives", optional = true }
+primitives = { path = "../../utils/primitives", optional = true }
 # TODO: update all rlp version.
 rlp = "^0.5"
 keccak-hash = "0.10"
 
 [dev-dependencies]
-primitives = { path = "../primitives", features = ["test_no_account_length_check"] }
+primitives = { path = "../../utils/primitives", features = ["test_no_account_length_check"] }
 
 [features]
 default = ["primitives"]

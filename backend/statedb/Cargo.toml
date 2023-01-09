@@ -7,21 +7,21 @@ version = "1.0.0"
 edition = "2018"
 
 [dependencies]
-cfx-internal-common = { path = "../internal-common" }
-cfx-parameters = { path = "../parameters" }
+cfx-internal-common = { path = "../../utils/internal-common" }
+cfx-parameters = { path = "../../utils/parameters" }
 cfx-storage = { path = "../storage"}
-cfx-types = { path = "../cfx_types" }
+cfx-types = { path = "../../utils/cfx_types" }
 error-chain = { version = "0.12", default-features = false }
 hashbrown = "0.7.1"
 log = "0.4"
 parking_lot = "0.11"
-primitives = { path = "../primitives", optional = true }
+primitives = { path = "../../utils/primitives", optional = true }
 rlp = "^0.5"
 tiny-keccak = "2.0.2"
 lazy_static = "1.4.0"
 
 [dev-dependencies]
-primitives = { path = "../primitives", features = ["test_no_account_length_check"] }
+primitives = { path = "../../utils/primitives", features = ["test_no_account_length_check"] }
 
 [features]
 default = ["primitives"]

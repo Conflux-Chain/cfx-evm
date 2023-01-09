@@ -55,10 +55,10 @@ impl SimpleExecutionTrait for PoSHeight {
         &self,
         _input: (),
         _params: &ActionParams,
-        context: &mut InternalRefContext,
+        _context: &mut InternalRefContext,
         _tracer: &mut dyn VmObserve,
     ) -> vm::Result<U256> {
-        Ok(context.env.pos_view.unwrap_or(0).into())
+        Ok(U256::zero())
     }
 }
 
@@ -74,10 +74,10 @@ impl SimpleExecutionTrait for FinalizedEpoch {
         &self,
         _input: (),
         _params: &ActionParams,
-        context: &mut InternalRefContext,
+        _context: &mut InternalRefContext,
         _tracer: &mut dyn VmObserve,
     ) -> vm::Result<U256> {
-        Ok(context.env.finalized_epoch.unwrap_or(0).into())
+        Ok(U256::zero())
     }
 }
 

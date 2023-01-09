@@ -3,6 +3,10 @@ use primitives::EpochId;
 #[macro_use]
 extern crate error_chain;
 
+mod in_memory;
+
+pub use in_memory::InMemoryDb;
+
 error_chain! {
     links {
     }

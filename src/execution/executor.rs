@@ -122,11 +122,11 @@ impl<'a> TXExecutor<'a> {
         }
 
         let base_gas_required = gas_required_for(tx.action() == &Action::Create, &tx.data(), spec);
-        if *tx.gas() >= base_gas_required.into() {
+        if *tx.gas() < base_gas_required.into() {
             return Ok(PreCheckResult::Fail(ExecutionOutcome::NotExecutedDrop(
                 TxDropError::NotEnoughBaseGas {
-                    expected: tx.gas().as_u64(),
-                    actual: base_gas_required,
+                    expected: base_gas_required,
+                    actual: tx.gas().as_u64(),
                 },
             )));
         }

@@ -4,7 +4,7 @@
 
 use crate::vm;
 use cfx_internal_common::{ChainIdParams, ChainIdParamsInner};
-use cfx_parameters::block::{EVM_TRANSACTION_BLOCK_RATIO, EVM_TRANSACTION_GAS_RATIO};
+use cfx_parameters::block::EVM_TRANSACTION_GAS_RATIO;
 use cfx_types::{AllChainID, U256};
 use primitives::{BlockHeight, BlockNumber};
 
@@ -25,8 +25,6 @@ pub struct CommonParams {
     /// Number of first block where max code size limit is active.
     /// Maximum size of transaction's RLP payload.
     pub max_transaction_size: usize,
-    /// The ratio of blocks in the EVM transactions
-    pub evm_transaction_block_ratio: u64,
     /// The gas ratio of evm transactions for the block can pack the EVM
     /// transactions
     pub evm_transaction_gas_ratio: u64,
@@ -87,7 +85,6 @@ pub struct TransitionsEpochHeight {
 }
 
 impl Default for CommonParams {
-    #[allow(unreachable_code)]
     fn default() -> Self {
         CommonParams {
             account_start_nonce: 0x00.into(),
@@ -97,7 +94,6 @@ impl Default for CommonParams {
             min_gas_limit: 10_000_000.into(),
             gas_limit_bound_divisor: 0x0400.into(),
             max_transaction_size: 300 * 1024,
-            evm_transaction_block_ratio: EVM_TRANSACTION_BLOCK_RATIO,
             evm_transaction_gas_ratio: EVM_TRANSACTION_GAS_RATIO,
             early_set_internal_contracts_states: false,
             transition_numbers: Default::default(),
@@ -109,9 +105,5 @@ impl Default for CommonParams {
 impl CommonParams {
     pub fn spec(&self, number: BlockNumber) -> vm::Spec {
         vm::Spec::new_spec_from_common_params(&self, number)
-    }
-
-    pub fn can_pack_evm_transaction(&self, height: BlockHeight) -> bool {
-        height % self.evm_transaction_block_ratio == 0
     }
 }
