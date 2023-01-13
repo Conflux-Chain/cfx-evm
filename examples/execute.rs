@@ -1,5 +1,7 @@
 extern crate cfx_evm;
 
+use std::marker::PhantomData;
+
 use cfx_evm::{
     new_machine_with_builtin, CommonParams, Env, ExecutionOutcome, State, TXExecutor,
     TransactOptions, VmFactory,
@@ -7,6 +9,7 @@ use cfx_evm::{
 use cfx_state::state_trait::StateOpsTrait;
 use cfx_statedb::StateDb;
 use cfx_storage::InMemoryDb;
+use cfx_storage::StorageKeyWrapper;
 use cfx_types::{Address, AddressSpaceUtil, U256};
 use cfxkey::Generator;
 use cfxkey::Random;
@@ -21,7 +24,7 @@ fn main() {
     let mut env = Env::default();
 
     // 2. Prepare for backend
-    let storage = Box::new(InMemoryDb::new());
+    let storage = InMemoryDb::new();
     let state_db = StateDb::new(storage);
     let mut state = State::new(state_db).unwrap();
 

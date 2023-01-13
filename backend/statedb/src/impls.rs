@@ -1,42 +1,36 @@
 // Put StateDb in mod to make sure that methods from statedb_ext don't access
 // its fields directly.
 
+use std::marker::PhantomData;
+
 use super::*;
 use cfx_internal_common::debug::ComputeEpochDebugRecord;
 
-use cfx_storage::StorageTrait;
-use primitives::StateKey;
+use cfx_storage::{StorageKeyWrapper, StorageTrait};
+use primitives::{OwnedStateKey, StateKey};
 
 // Use generic type for better test-ability.
 pub struct StateDb<'a> {
-    storage: Box<dyn StorageTrait<StateKey = Vec<u8>> + 'a>,
+    storage: Box<dyn StorageTrait<StorageKey = OwnedStateKey> + 'a>,
 }
 
 impl<'a> StateDb<'a> {
-    pub fn new(storage: Box<dyn StorageTrait<StateKey = Vec<u8>> + 'a>) -> Self {
+    pub fn new<T, U>(storage: T) -> Self
+    where
+        T: StorageTrait<StorageKey = U> + 'a,
+        U: From<OwnedStateKey>,
+    {
+        let storage = Box::new(StorageKeyWrapper {
+            inner: storage,
+            _key: PhantomData::<OwnedStateKey>,
+        });
         StateDb { storage }
-    }
-
-    fn to_storage_key(key: StateKey) -> Vec<u8> {
-        const STORAGE_PREFIX: [u8; 5] = *b"store";
-        const CODE_PREFIX: [u8; 4] = *b"code";
-
-        match key {
-            StateKey::AccountKey(address) => [&address.address.0[..]].concat(),
-            StateKey::StorageKey {
-                address,
-                storage_key,
-            } => [&address.address.0[..], &STORAGE_PREFIX, storage_key].concat(),
-            StateKey::CodeKey(address) => [&address.address.0[..], &CODE_PREFIX].concat(),
-        }
     }
 }
 
 impl<'a> StateDbTrait for StateDb<'a> {
     fn get_raw(&self, key: StateKey) -> Result<Option<Box<[u8]>>> {
-        self.storage
-            .get(StateDb::to_storage_key(key))
-            .map_err(Into::into)
+        self.storage.get(key.into_owned()).map_err(Into::into)
     }
     fn set_raw(
         &mut self,
@@ -45,7 +39,7 @@ impl<'a> StateDbTrait for StateDb<'a> {
         debug_record: Option<&mut ComputeEpochDebugRecord>,
     ) -> Result<()> {
         self.storage
-            .set(StateDb::to_storage_key(key), value)
+            .set(key.into_owned(), value)
             .map_err(Into::into)
     }
 
@@ -54,9 +48,7 @@ impl<'a> StateDbTrait for StateDb<'a> {
         key: StateKey,
         debug_record: Option<&mut ComputeEpochDebugRecord>,
     ) -> Result<()> {
-        self.storage
-            .delete(StateDb::to_storage_key(key))
-            .map_err(Into::into)
+        self.storage.delete(key.into_owned()).map_err(Into::into)
     }
 
     fn commit(

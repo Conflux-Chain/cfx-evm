@@ -8,10 +8,14 @@ license = "MIT/Apache-2.0"
 cfx-types = { path = "../cfx_types" }
 cfg-if = "0.1"
 hashbrown = "0.7.1"
-winapi = "0.3.7"
 slab = "0.4"
 parking_lot = "0.11"
 smallvec = "1.4"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.7", features = ["heapapi"] }
+[target.'cfg(unix)'.dependencies]
+winapi = "0.3.7"
 
 [features]
 jemalloc-global = ["jemallocator"]

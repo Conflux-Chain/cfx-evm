@@ -532,11 +532,11 @@ mod usable_size {
 
                 let heap = GetProcessHeap();
 
-                if HeapValidate(heap, 0, ptr) == 0 {
+                if HeapValidate(heap, 0, ptr as _) == 0 {
                     ptr = *(ptr as *const *const c_void).offset(-1);
                 }
 
-                HeapSize(heap, 0, ptr) as usize
+                HeapSize(heap, 0, ptr as _) as usize
             }
 
         } else if #[cfg(feature = "jemalloc-global")] {

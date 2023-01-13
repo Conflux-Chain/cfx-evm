@@ -15,18 +15,18 @@ impl InMemoryDb {
 }
 
 impl StorageTrait for InMemoryDb {
-    type StateKey = Bytes;
+    type StorageKey = Bytes;
 
-    fn get(&self, key: Self::StateKey) -> crate::Result<Option<Box<[u8]>>> {
+    fn get(&self, key: Self::StorageKey) -> crate::Result<Option<Box<[u8]>>> {
         Ok(self.inner.read().unwrap().get(&key).cloned())
     }
 
-    fn set(&mut self, access_key: Self::StateKey, value: Box<[u8]>) -> crate::Result<()> {
+    fn set(&mut self, access_key: Self::StorageKey, value: Box<[u8]>) -> crate::Result<()> {
         self.inner.get_mut().unwrap().insert(access_key, value);
         Ok(())
     }
 
-    fn delete(&mut self, access_key: Self::StateKey) -> crate::Result<()> {
+    fn delete(&mut self, access_key: Self::StorageKey) -> crate::Result<()> {
         self.inner.get_mut().unwrap().remove(&access_key);
         Ok(())
     }
