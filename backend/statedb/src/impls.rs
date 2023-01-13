@@ -8,12 +8,12 @@ use cfx_storage::StorageTrait;
 use primitives::StateKey;
 
 // Use generic type for better test-ability.
-pub struct StateDb {
-    storage: Box<dyn StorageTrait<StateKey = Vec<u8>>>,
+pub struct StateDb<'a> {
+    storage: Box<dyn StorageTrait<StateKey = Vec<u8>> + 'a>,
 }
 
-impl StateDb {
-    pub fn new(storage: Box<dyn StorageTrait<StateKey = Vec<u8>>>) -> Self {
+impl<'a> StateDb<'a> {
+    pub fn new(storage: Box<dyn StorageTrait<StateKey = Vec<u8>> + 'a>) -> Self {
         StateDb { storage }
     }
 
@@ -32,7 +32,7 @@ impl StateDb {
     }
 }
 
-impl StateDbTrait for StateDb {
+impl<'a> StateDbTrait for StateDb<'a> {
     fn get_raw(&self, key: StateKey) -> Result<Option<Box<[u8]>>> {
         self.storage
             .get(StateDb::to_storage_key(key))

@@ -50,8 +50,8 @@ struct WorldStatistics {
     total_issued_tokens: U256,
 }
 
-pub struct State {
-    db: StateDb,
+pub struct State<'a> {
+    db: StateDb<'a>,
 
     // Only created once for txpool notification.
     // Each element is an Ok(Account) for updated account, or
@@ -68,7 +68,7 @@ pub struct State {
     checkpoints: RwLock<Vec<HashMap<AddressWithSpace, Option<AccountEntry>>>>,
 }
 
-impl StateTrait for State {
+impl<'a> StateTrait for State<'a> {
     fn commit(
         &mut self,
         epoch_id: EpochId,
@@ -103,7 +103,7 @@ impl StateTrait for State {
     }
 }
 
-impl StateOpsTrait for State {
+impl<'a> StateOpsTrait for State<'a> {
     /// Maintain `total_issued_tokens`.
     fn add_total_issued(&mut self, v: U256) {
         assert!(self.world_statistics_checkpoints.get_mut().is_empty());
@@ -317,7 +317,7 @@ impl StateOpsTrait for State {
     }
 }
 
-impl CheckpointTrait for State {
+impl<'a> CheckpointTrait for State<'a> {
     /// Create a recoverable checkpoint of this state. Return the checkpoint
     /// index. The checkpoint records any old value which is alive at the
     /// creation time of the checkpoint and updated after that and before
@@ -384,7 +384,7 @@ impl CheckpointTrait for State {
     }
 }
 
-impl AsStateOpsTrait for State {
+impl<'a> AsStateOpsTrait for State<'a> {
     fn as_state_ops(&self) -> &dyn StateOpsTrait {
         self
     }
@@ -394,8 +394,8 @@ impl AsStateOpsTrait for State {
     }
 }
 
-impl State {
-    pub fn new(db: StateDb) -> DbResult<Self> {
+impl<'a> State<'a> {
+    pub fn new(db: StateDb<'a>) -> DbResult<Self> {
         let total_issued_tokens = db.get_total_issued_tokens()?;
 
         let world_statistics = WorldStatistics {
