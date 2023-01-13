@@ -18,7 +18,7 @@ error_chain! {
     }
 }
 
-pub trait StorageTrait: Sync + Send {
+pub trait StorageTrait {
     type StateKey;
 
     // Actions.
