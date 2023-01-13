@@ -22,8 +22,12 @@ mod vm_factory;
 
 pub use execution::TXExecutor;
 pub use execution::{ExecutionOutcome, TransactOptions};
-pub use machine::new_machine_with_builtin;
+pub use machine::{new_machine_with_builtin, Machine};
 pub use spec::CommonParams;
 pub use state::State;
-pub use vm::Env;
+pub use vm::{Env, Spec};
 pub use vm_factory::VmFactory;
+
+pub use cfx_state::StateTrait;
+pub use cfx_statedb::{StateDb, StateDbExt, StateDbTrait};
+pub use cfx_storage::StorageTrait;
