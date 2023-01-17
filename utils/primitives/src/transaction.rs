@@ -818,10 +818,6 @@ impl SignedTransaction {
         &self.transaction.gas_price()
     }
 
-    pub fn gas_limit(&self) -> &U256 {
-        &self.transaction.gas()
-    }
-
     pub fn rlp_size(&self) -> usize {
         self.transaction.rlp_size()
     }

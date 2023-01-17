@@ -1,4 +1,5 @@
 use super::executed::{Executed, ExecutionError, ExecutionOutcome, ToRepackError, TxDropError};
+use super::transaction_info::TransactionInfo;
 use super::TransactOptions;
 use crate::call_create_frame::{contract_address, CallCreateFrame, FrameStack, FrameStackOutput};
 
@@ -14,7 +15,7 @@ use crate::{
 use cfx_state::StateTrait;
 use cfx_statedb::Result as DbResult;
 use cfx_types::{AddressSpaceUtil, AddressWithSpace, Space, U256, U512};
-use primitives::{transaction::Action, SignedTransaction};
+use primitives::transaction::Action;
 use std::{
     collections::HashSet,
     convert::{TryFrom, TryInto},
@@ -73,7 +74,7 @@ impl<'a> TXExecutor<'a> {
 
     pub fn transact(
         &mut self,
-        tx: &SignedTransaction,
+        tx: &impl TransactionInfo,
         options: TransactOptions,
     ) -> DbResult<ExecutionOutcome> {
         let pre_check_result = self.transact_preprocessing(tx, options)?;
@@ -95,7 +96,7 @@ impl<'a> TXExecutor<'a> {
 
     fn transact_preprocessing(
         &mut self,
-        tx: &SignedTransaction,
+        tx: &impl TransactionInfo,
         options: TransactOptions,
     ) -> DbResult<PreCheckResult> {
         let TransactOptions {
@@ -121,7 +122,8 @@ impl<'a> TXExecutor<'a> {
             ));
         }
 
-        let base_gas_required = gas_required_for(tx.action() == &Action::Create, &tx.data(), spec);
+        let base_gas_required =
+            gas_required_for(&*tx.action() == &Action::Create, &tx.data(), spec);
         if *tx.gas() < base_gas_required.into() {
             return Ok(PreCheckResult::Fail(ExecutionOutcome::NotExecutedDrop(
                 TxDropError::NotEnoughBaseGas {
@@ -140,7 +142,7 @@ impl<'a> TXExecutor<'a> {
 
         let sender_balance = U512::from(balance);
 
-        let total_cost = U512::from(tx.value()) + gas_cost;
+        let total_cost = U512::from(*tx.value()) + gas_cost;
 
         let mut tx_substate = Substate::new();
         if sender_balance < total_cost {
@@ -212,9 +214,9 @@ impl<'a> TXExecutor<'a> {
             )?;
         }
 
-        let init_gas = tx.gas() - base_gas_required;
+        let init_gas = *tx.gas() - base_gas_required;
 
-        let top_frame = match tx.action() {
+        let top_frame = match *tx.action() {
             Action::Create => {
                 let address_scheme = match tx.space() {
                     Space::Ethereum => CreateContractAddress::FromSenderNonce,
@@ -237,7 +239,7 @@ impl<'a> TXExecutor<'a> {
                     gas: init_gas,
                     gas_price: *tx.gas_price(),
                     value: ActionValue::Transfer(*tx.value()),
-                    code: Some(Arc::new(tx.data().clone())),
+                    code: Some(Arc::new(tx.data().into_owned())),
                     data: None,
                     call_type: CallType::None,
                     create_type: CreateType::CREATE,
@@ -266,7 +268,7 @@ impl<'a> TXExecutor<'a> {
                     value: ActionValue::Transfer(*tx.value()),
                     code: self.state.code(&address)?,
                     code_hash: self.state.code_hash(&address)?,
-                    data: Some(tx.data().clone()),
+                    data: Some(tx.data().into_owned()),
                     call_type: CallType::Call,
                     create_type: CreateType::None,
                     params_type: vm::ParamsType::Separate,
@@ -294,7 +296,7 @@ impl<'a> TXExecutor<'a> {
     /// Finalizes the transaction (does refunds and suicides).
     fn transact_postprocessing(
         &mut self,
-        tx: &SignedTransaction,
+        tx: &impl TransactionInfo,
         frame_stack_output: FrameStackOutput,
     ) -> DbResult<ExecutionOutcome> {
         let FrameStackOutput {
@@ -320,13 +322,13 @@ impl<'a> TXExecutor<'a> {
         };
 
         // gas_used is only used to estimate gas needed
-        let gas_used = tx.gas() - gas_left;
+        let gas_used = *tx.gas() - gas_left;
         // gas_left should be smaller than 1/4 of gas_limit, otherwise
         // 3/4 of gas_limit is charged.
         let charge_all = (gas_left + gas_left + gas_left) >= gas_used;
         let (gas_charged, fees_value, refund_value) = if charge_all {
-            let gas_refunded = tx.gas() >> 2;
-            let gas_charged = tx.gas() - gas_refunded;
+            let gas_refunded = *tx.gas() >> 2;
+            let gas_charged = *tx.gas() - gas_refunded;
             (
                 gas_charged,
                 gas_charged.saturating_mul(*tx.gas_price()),
@@ -343,7 +345,7 @@ impl<'a> TXExecutor<'a> {
         {
             observer.as_state_tracer().trace_internal_transfer(
                 AddressPocket::GasPayment,
-                AddressPocket::Balance(tx.sender()),
+                AddressPocket::Balance(tx.sender().into_owned()),
                 refund_value.clone(),
             );
             self.state.add_balance(

@@ -4,7 +4,7 @@
 
 use crate::{bytes::Bytes, vm};
 use cfx_types::{AddressWithSpace, U256, U512};
-use primitives::{LogEntry, TransactionWithSignature};
+use primitives::LogEntry;
 use solidity_abi::{ABIDecodable, ABIDecodeError};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -92,7 +92,7 @@ impl ExecutionOutcome {
 
 impl Executed {
     pub fn not_enough_balance_fee_charged(
-        tx: &TransactionWithSignature,
+        tx: &impl TransactionInfo,
         fee: &U256,
         trace: Vec<ExecTrace>,
         _spec: &Spec,
@@ -100,7 +100,7 @@ impl Executed {
         let gas_charged = if *tx.gas_price() == U256::zero() {
             U256::zero()
         } else {
-            fee / tx.gas_price()
+            fee / *tx.gas_price()
         };
         Self {
             gas_used: *tx.gas(),
@@ -115,7 +115,7 @@ impl Executed {
     }
 
     pub fn execution_error_fully_charged(
-        tx: &TransactionWithSignature,
+        tx: &impl TransactionInfo,
         trace: Vec<ExecTrace>,
         _spec: &Spec,
     ) -> Self {
@@ -160,6 +160,8 @@ pub fn revert_reason_decode(output: &Bytes) -> String {
 use crate::{observer::trace::ExecTrace, vm::Spec};
 #[cfg(test)]
 use rustc_hex::FromHex;
+
+use super::transaction_info::TransactionInfo;
 
 #[test]
 fn test_decode_result() {
