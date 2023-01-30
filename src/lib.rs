@@ -20,6 +20,7 @@ mod state;
 pub mod vm;
 mod vm_factory;
 
+pub use call_create_frame::contract_address;
 pub use execution::TXExecutor;
 pub use execution::{ExecutionOutcome, TransactOptions, TransactionInfo};
 pub use machine::{new_machine_with_builtin, Machine};
