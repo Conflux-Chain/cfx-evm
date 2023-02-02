@@ -24,7 +24,6 @@ pub fn public_to_address(public: &Public) -> Address {
     let hash = public.keccak256();
     let mut result = Address::zero();
     result.as_bytes_mut().copy_from_slice(&hash[12..]);
-    result.set_user_account_type_bits();
     result
 }
 
